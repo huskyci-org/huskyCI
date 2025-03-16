@@ -1,14 +1,10 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package token
 
 import (
 	"time"
 
-	"github.com/globocom/huskyCI/api/auth"
-	"github.com/globocom/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/auth"
+	"github.com/huskyci-org/huskyCI/api/types"
 )
 
 // ExternalCalls defines a group of functions

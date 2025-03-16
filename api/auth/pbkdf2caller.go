@@ -1,7 +1,3 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package auth
 
 import (
@@ -13,8 +9,8 @@ import (
 	"os"
 	"strconv"
 
-	apiContext "github.com/globocom/huskyCI/api/context"
-	"github.com/globocom/huskyCI/api/types"
+	apiContext "github.com/huskyci-org/huskyCI/api/context"
+	"github.com/huskyci-org/huskyCI/api/types"
 	"golang.org/x/crypto/pbkdf2"
 )
 

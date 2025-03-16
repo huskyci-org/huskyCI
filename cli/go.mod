@@ -1,6 +1,8 @@
-module github.com/globocom/huskyCI/cli
+module github.com/huskyci-org/huskyCI/cli
 
-go 1.20
+go 1.23.0
+
+toolchain go1.23.7
 
 require (
 	github.com/google/uuid v1.3.0
@@ -12,7 +14,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
 	github.com/src-d/enry/v2 v2.1.0
-	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
+	go.mongodb.org/mongo-driver v1.17.3
 )
 
 require (
@@ -37,9 +39,9 @@ require (
 	github.com/toqueteos/trie v1.0.0 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
-	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

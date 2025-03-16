@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/globocom/huskyCI/cli/config"
+	"github.com/huskyci-org/huskyCI/cli/config"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

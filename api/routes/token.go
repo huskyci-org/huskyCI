@@ -1,16 +1,12 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package routes
 
 import (
 	"net/http"
 
-	"github.com/globocom/huskyCI/api/auth"
-	"github.com/globocom/huskyCI/api/log"
-	"github.com/globocom/huskyCI/api/token"
-	"github.com/globocom/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/auth"
+	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/token"
+	"github.com/huskyci-org/huskyCI/api/types"
 	"github.com/labstack/echo"
 )
 

@@ -3,7 +3,7 @@ package util_test
 import (
 	"testing"
 
-	"github.com/globocom/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/log"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/globocom/huskyCI/client/integration/sonarqube"
+	"github.com/huskyci-org/huskyCI/client/integration/sonarqube"
 
-	"github.com/globocom/huskyCI/client/analysis"
-	"github.com/globocom/huskyCI/client/config"
-	"github.com/globocom/huskyCI/client/types"
+	"github.com/huskyci-org/huskyCI/client/analysis"
+	"github.com/huskyci-org/huskyCI/client/config"
+	"github.com/huskyci-org/huskyCI/client/types"
 )
 
 func main() {

@@ -1,16 +1,15 @@
-// Copyright 2018 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package db
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/globocom/huskyCI/api/log"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/huskyci-org/huskyCI/api/log"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // Conn is the MongoDB connection variable.
@@ -26,9 +25,10 @@ var (
 	DockerAPIAddressesCollection = "dockerAPIAddresses"
 )
 
-// DB is the struct that represents mongo session.
+// DB is the struct that represents mongo client.
 type DB struct {
-	Session *mgo.Session
+	Client *mongo.Client
+	DB     *mongo.Database
 }
 
 const logActionConnect = "Connect"
@@ -42,7 +42,7 @@ type Database interface {
 	Update(query bson.M, updateQuery interface{}, collection string) error
 	UpdateAll(query, updateQuery bson.M, collection string) error
 	FindAndModify(findQuery, updateQuery interface{}, collection string, obj interface{}) error
-	Upsert(query bson.M, obj interface{}, collection string) (*mgo.ChangeInfo, error)
+	Upsert(query bson.M, obj interface{}, collection string) (*mongo.UpdateResult, error)
 	SearchOne(query bson.M, selectors []string, collection string, obj interface{}) error
 }
 
@@ -51,44 +51,38 @@ func Connect(address, dbName, username, password string, poolLimit, port int, ti
 
 	log.Info(logActionConnect, logInfoMongo, 21)
 	dbAddress := fmt.Sprintf("%s:%d", address, port)
-	dialInfo := &mgo.DialInfo{
-		Addrs:     []string{dbAddress},
-		Timeout:   timeout,
-		FailFast:  true,
-		Database:  dbName,
-		Username:  username,
-		Password:  password,
-		PoolLimit: poolLimit,
-	}
-	session, err := mgo.DialWithInfo(dialInfo)
+	clientOptions := options.Client().ApplyURI(dbAddress).SetAuth(options.Credential{
+		Username: username,
+		Password: password,
+	}).SetMaxPoolSize(uint64(poolLimit)).SetConnectTimeout(timeout)
 
+	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		log.Error(logActionConnect, logInfoMongo, 2001, err)
 		return err
 	}
-	session.SetSafe(&mgo.Safe{WMode: "majority"})
 
-	if err := session.Ping(); err != nil {
+	if err := client.Ping(context.TODO(), readpref.Primary()); err != nil {
 		log.Error(logActionConnect, logInfoMongo, 2002, err)
 		return err
 	}
 
-	Conn = &DB{Session: session}
+	Conn = &DB{Client: client, DB: client.Database(dbName)}
 	go autoReconnect()
 
 	return nil
 }
 
-// autoReconnect checks mongo's connection each second and, if an error is found, reconect to it.
+// autoReconnect checks mongo's connection each second and, if an error is found, reconnect to it.
 func autoReconnect() {
 	log.Info(logActionReconnect, logInfoMongo, 22)
 	var err error
 	for {
-		err = Conn.Session.Ping()
+		err = Conn.Client.Ping(context.TODO(), readpref.Primary())
 		if err != nil {
 			log.Error(logActionReconnect, logInfoMongo, 2003, err)
-			Conn.Session.Refresh()
-			err = Conn.Session.Ping()
+			Conn.Client.Disconnect(context.TODO())
+			err = Conn.Client.Connect(context.TODO())
 			if err == nil {
 				log.Info(logActionReconnect, logInfoMongo, 23)
 			} else {
@@ -101,107 +95,81 @@ func autoReconnect() {
 
 // Insert inserts a new document.
 func (db *DB) Insert(obj interface{}, collection string) error {
-	session := db.Session.Clone()
-	c := session.DB("").C(collection)
-	defer session.Close()
-	return c.Insert(obj)
+	c := db.DB.Collection(collection)
+	_, err := c.InsertOne(context.TODO(), obj)
+	return err
 }
 
 // Update updates a single document.
 func (db *DB) Update(query, updateQuery interface{}, collection string) error {
-	session := db.Session.Clone()
-	c := session.DB("").C(collection)
-	defer session.Close()
-	err := c.Update(query, updateQuery)
+	c := db.DB.Collection(collection)
+	_, err := c.UpdateOne(context.TODO(), query, updateQuery)
 	return err
 }
 
 // UpdateAll updates all documents that match the query.
 func (db *DB) UpdateAll(query, updateQuery interface{}, collection string) error {
-	session := db.Session.Clone()
-	c := session.DB("").C(collection)
-	defer session.Close()
-	_, err := c.UpdateAll(query, updateQuery)
+	c := db.DB.Collection(collection)
+	_, err := c.UpdateMany(context.TODO(), query, updateQuery)
 	return err
 }
 
 func (db *DB) FindAndModify(findQuery, updateQuery interface{}, collection string, obj interface{}) error {
-	session := db.Session.Clone()
-	col := session.DB("").C(collection)
-	defer session.Close()
-
-	change := mgo.Change{
-		Update:    updateQuery,
-		Upsert:    false,
-		Remove:    false,
-		ReturnNew: false,
-	}
-	_, err := col.Find(findQuery).Apply(change, obj)
+	c := db.DB.Collection(collection)
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	err := c.FindOneAndUpdate(context.TODO(), findQuery, updateQuery, opts).Decode(obj)
 	return err
 }
 
-// Search searchs all documents that match the query. If selectors are present, the return will be only the chosen fields.
+// Search searches all documents that match the query. If selectors are present, the return will be only the chosen fields.
 func (db *DB) Search(query bson.M, selectors []string, collection string, obj interface{}) error {
-	session := db.Session.Clone()
-	defer session.Close()
-	c := session.DB("").C(collection)
-
-	var err error
+	c := db.DB.Collection(collection)
+	opts := options.Find()
 	if selectors != nil {
-		selector := bson.M{}
+		projection := bson.M{}
 		for _, v := range selectors {
-			selector[v] = 1
+			projection[v] = 1
 		}
-		err = c.Find(query).Select(selector).All(obj)
-	} else {
-		err = c.Find(query).All(obj)
+		opts.SetProjection(projection)
 	}
-	if err == nil && obj == nil {
-		err = mgo.ErrNotFound
+	cursor, err := c.Find(context.TODO(), query, opts)
+	if err != nil {
+		return err
 	}
-	return err
+	defer cursor.Close(context.TODO())
+	return cursor.All(context.TODO(), obj)
 }
 
 // Aggregation prepares a pipeline to aggregate.
 func (db *DB) Aggregation(aggregation []bson.M, collection string) (interface{}, error) {
-	session := db.Session.Clone()
-	defer session.Close()
-	c := session.DB("").C(collection)
-
-	pipe := c.Pipe(aggregation)
-	resp := []bson.M{}
-	iter := pipe.Iter()
-	err := iter.All(&resp)
-
+	c := db.DB.Collection(collection)
+	cursor, err := c.Aggregate(context.TODO(), aggregation)
+	if err != nil {
+		return nil, err
+	}
+	var resp []bson.M
+	err = cursor.All(context.TODO(), &resp)
 	return resp, err
 }
 
-// SearchOne searchs for the first element that matchs with the given query.
+// SearchOne searches for the first element that matches with the given query.
 func (db *DB) SearchOne(query bson.M, selectors []string, collection string, obj interface{}) error {
-	session := db.Session.Clone()
-	defer session.Close()
-	c := session.DB("").C(collection)
-
-	var err error
+	c := db.DB.Collection(collection)
+	opts := options.FindOne()
 	if selectors != nil {
-		selector := bson.M{}
+		projection := bson.M{}
 		for _, v := range selectors {
-			selector[v] = 1
+			projection[v] = 1
 		}
-		err = c.Find(query).Select(selector).One(obj)
-	} else {
-		err = c.Find(query).One(obj)
+		opts.SetProjection(projection)
 	}
-	if err == nil && obj == nil {
-		err = mgo.ErrNotFound
-	}
+	err := c.FindOne(context.TODO(), query, opts).Decode(obj)
 	return err
 }
 
 // Upsert inserts a document or update it if it already exists.
-func (db *DB) Upsert(query bson.M, obj interface{}, collection string) (*mgo.ChangeInfo, error) {
-	session := db.Session.Clone()
-	c := session.DB("").C(collection)
-	defer session.Close()
-	return c.Upsert(query, obj)
+func (db *DB) Upsert(query bson.M, obj interface{}, collection string) (*mongo.UpdateResult, error) {
+	c := db.DB.Collection(collection)
+	opts := options.Update().SetUpsert(true)
+	return c.UpdateOne(context.TODO(), query, bson.M{"$set": obj}, opts)
 }

@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	apiContext "github.com/globocom/huskyCI/api/context"
-	docker "github.com/globocom/huskyCI/api/dockers"
-	kube "github.com/globocom/huskyCI/api/kubernetes"
-	"github.com/globocom/huskyCI/api/log"
-	"github.com/globocom/huskyCI/api/types"
-	"github.com/globocom/huskyCI/api/user"
-	mgo "gopkg.in/mgo.v2"
+	apiContext "github.com/huskyci-org/huskyCI/api/context"
+	docker "github.com/huskyci-org/huskyCI/api/dockers"
+	kube "github.com/huskyci-org/huskyCI/api/kubernetes"
+	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/user"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const logActionCheckReqs = "CheckHuskyRequirements"
@@ -43,7 +43,7 @@ func (hU HuskyUtils) CheckHuskyRequirements(configAPI *apiContext.APIConfig) err
 	}
 	log.Info(logActionCheckReqs, logInfoAPIUtil, 13)
 
-	// check if DB is acessible and credentials received are working.
+	// check if DB is accessible and credentials received are working.
 	if err := hU.CheckHandler.checkDB(configAPI); err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (cH *CheckUtils) checkDefaultUser(configAPI *apiContext.APIConfig) error {
 	defaultUserQuery := map[string]interface{}{"username": user.DefaultAPIUser}
 	_, err := configAPI.DBInstance.FindOneDBUser(defaultUserQuery)
 	if err != nil {
-		if err == mgo.ErrNotFound || err.Error() == "No data found" {
+		if err == mongo.ErrNoDocuments || err.Error() == "No data found" {
 			// user not found, add default user
 			if err := user.InsertDefaultUser(); err != nil {
 				return err

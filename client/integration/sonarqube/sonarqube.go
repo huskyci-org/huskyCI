@@ -1,7 +1,3 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package sonarqube
 
 import (
@@ -10,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/globocom/huskyCI/client/types"
-	"github.com/globocom/huskyCI/client/util"
+	"github.com/huskyci-org/huskyCI/client/types"
+	"github.com/huskyci-org/huskyCI/client/util"
 )
 
 const goContainerBasePath = `/go/src/code/`

@@ -1,15 +1,11 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package db
 
 import (
 	"time"
 
-	mongoHuskyCI "github.com/globocom/huskyCI/api/db/mongo"
-	"github.com/globocom/huskyCI/api/types"
-	"gopkg.in/mgo.v2/bson"
+	mongoHuskyCI "github.com/huskyci-org/huskyCI/api/db/mongo"
+	"github.com/huskyci-org/huskyCI/api/types"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // ConnectDB will call Connect function

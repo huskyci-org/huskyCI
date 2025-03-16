@@ -8,7 +8,7 @@ import (
 
 	"errors"
 
-	. "github.com/globocom/huskyCI/api/db/postgres"
+	. "github.com/huskyci-org/huskyCI/api/db/postgres"
 )
 
 type FakeSql struct {
