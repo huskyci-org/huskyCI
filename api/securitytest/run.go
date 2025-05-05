@@ -74,14 +74,23 @@ func (results *RunAllInfo) Start(enryScan SecTestScanInfo) error {
 		close(waitChan)
 	}()
 
+	var scanError error
 	select {
 	case <-waitChan:
-		return nil
+		scanError = nil
 	case err := <-errChan:
 		close(syncChan)
-		results.ErrorFound = err
-		return err
+		scanError = err
 	}
+
+	if scanError != nil {
+		results.ErrorFound = scanError
+		return scanError
+	}
+
+	// Set the FinalResult based on the scan results
+	results.setFinalResult()
+	return nil
 }
 
 func (results *RunAllInfo) runGenericScans(enryScan SecTestScanInfo) error {
@@ -363,4 +372,22 @@ func getAllDefaultSecurityTests(typeOf, language string) ([]types.SecurityTest, 
 		return securityTests, err
 	}
 	return securityTests, nil
+}
+
+func (results *RunAllInfo) setFinalResult() {
+	// Logic to determine the final result based on scan results.
+	// For example, if all scans passed, set FinalResult to "passed".
+	// If any critical scan failed, set FinalResult to "failed".
+	passed := true
+	for _, container := range results.Containers {
+		if container.CResult == "failed" {
+			passed = false
+			break
+		}
+	}
+	if passed {
+		results.FinalResult = "passed"
+	} else {
+		results.FinalResult = "failed"
+	}
 }
