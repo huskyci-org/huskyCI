@@ -85,14 +85,6 @@ Todos os guias e a documentação completa podem ser encontrados na [página ofi
 
 Leia nosso [guia de contribuições](https://github.com/globocom/huskyCI/blob/master/CONTRIBUTING.md) para aprender sobre nosso processo de desenvolvimento, como propor correções de bugs e melhorias, e como construir e testar suas mudanças no huskyCI.
 
-## Comunicação
-
-Temos alguns canais de contato, sinta-se à vontade para nos contatar em:
-
-- [GitHub Issues](https://github.com/globocom/huskyCI/issues)
-- [Gitter](https://gitter.im/globocom/huskyCI)
-- [Twitter](https://twitter.com/huskyCI)
-
 ## Contribuições
 
 Este projeto existe graças a todos os [contribuidores]((https://github.com/globocom/huskyCI/graphs/contributors)). Vocês são incríveis!   ❤️🚀
