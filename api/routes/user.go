@@ -13,6 +13,7 @@ import (
 	"github.com/labstack/echo"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/pbkdf2"
+	"gopkg.in/mgo.v2"
 )
 
 // UpdateUser edits an user
