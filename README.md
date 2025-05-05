@@ -86,14 +86,6 @@ All guides and the full documentation can be found in the [official documentatio
 
 Read our [contributing guide](https://github.com/globocom/huskyCI/blob/master/CONTRIBUTING.md) to learn about our development process, how to propose bugfixes and improvements, and how to build and test your changes to huskyCI.
 
-## Communication
-
-We have a few channels for contact, feel free to reach out to us at:
-
-- [GitHub Issues](https://github.com/globocom/huskyCI/issues)
-- [Gitter](https://gitter.im/globocom/huskyCI)
-- [Twitter](https://twitter.com/huskyCI)
-
 ## License
 
 huskyCI is licensed under the [BSD 3-Clause "New" or "Revised" License](https://github.com/globocom/huskyCI/blob/master/LICENSE.md).
