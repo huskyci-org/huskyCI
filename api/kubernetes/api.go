@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
 	"github.com/huskyci-org/huskyCI/api/log"
@@ -215,7 +215,7 @@ func (k Kubernetes) ReadOutput(name string) (string, error) {
 	}
 	defer podLogs.Close()
 
-	result, err := ioutil.ReadAll(podLogs)
+	result, err := io.ReadAll(podLogs)
 	if err != nil {
 		errRemovePod := k.RemovePod(name)
 		if errRemovePod != nil {

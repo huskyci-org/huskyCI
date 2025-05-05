@@ -6,8 +6,8 @@ import (
 
 	"errors"
 
-	. "github.com/globocom/huskyCI/api/token"
-	"github.com/globocom/huskyCI/api/types"
+	. "github.com/huskyci-org/huskyCI/api/token"
+	"github.com/huskyci-org/huskyCI/api/types"
 )
 
 type FakeVerifier struct {

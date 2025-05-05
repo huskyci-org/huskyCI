@@ -1,6 +1,8 @@
 package analysis
 
 import (
+	"errors"
+	"os"
 	"time"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
@@ -35,21 +37,46 @@ func StartAnalysis(RID string, repository types.Repository) {
 		}
 	}()
 
-	dockerAPIHost, err := apiContext.APIConfiguration.DBInstance.FindAndModifyDockerAPIAddresses()
-	if err != nil {
+	infrastructureSelected, hasSelected := os.LookupEnv("HUSKYCI_INFRASTRUCTURE_USE")
+	if !hasSelected {
+		err := errors.New("HUSKYCI_INFRASTRUCTURE_USE environment variable not set")
 		log.Error(logActionStart, logInfoAnalysis, 2011, err)
+		return
 	}
 
-	configAPI, err := apiContext.DefaultConf.GetAPIConfig()
-	if err != nil {
+	var apiHost string
+
+	if infrastructureSelected == "docker" {
+		dockerAPIHost, err := apiContext.APIConfiguration.DBInstance.FindAndModifyDockerAPIAddresses()
+		if err != nil {
+			log.Error(logActionStart, logInfoAnalysis, 2011, err)
+			return
+		}
+
+		configAPI, err := apiContext.DefaultConf.GetAPIConfig()
+		if err != nil {
+			log.Error(logActionStart, logInfoAnalysis, 2011, err)
+			return
+		}
+
+		apiHost, err = apiUtil.FormatDockerHostAddress(dockerAPIHost, configAPI)
+		if err != nil {
+			log.Error(logActionStart, logInfoAnalysis, 2011, err)
+			return
+		}
+	} else if infrastructureSelected == "kubernetes" {
+		// Assume that the Kubernetes host is set properly in the configuration or environment variables
+		// Implement any specific logic to get the Kubernetes API host if needed
+		apiHost = "kubernetes.default.svc" // Example host, replace with actual logic if needed
+	} else {
+		err := errors.New("invalid HUSKYCI_INFRASTRUCTURE_USE value")
 		log.Error(logActionStart, logInfoAnalysis, 2011, err)
+		return
 	}
 
-	dockerHost := apiUtil.FormatDockerHostAddress(dockerAPIHost, configAPI)
+	log.Info("StartAnalysisTest", apiHost, 2012, RID)
 
-	log.Info("StartAnalysisTest", dockerHost, 2012, RID)
-
-	if err := enryScan.New(RID, repository.URL, repository.Branch, enryScan.SecurityTestName, repository.LanguageExclusions, dockerHost); err != nil {
+	if err := enryScan.New(RID, repository.URL, repository.Branch, enryScan.SecurityTestName, repository.LanguageExclusions, apiHost); err != nil {
 		log.Error(logActionStart, logInfoAnalysis, 2011, err)
 		return
 	}

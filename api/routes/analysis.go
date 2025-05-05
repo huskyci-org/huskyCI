@@ -40,26 +40,39 @@ func GetAnalysis(c echo.Context) error {
 
 	RID := c.Param("id")
 	attemptToken := c.Request().Header.Get("Husky-Token")
+
 	if err := util.CheckMaliciousRID(RID, c); err != nil {
+		log.Error(logActionGetAnalysis, logInfoAnalysis, 1017, RID)
 		return err
 	}
+
 	analysisQuery := map[string]interface{}{"RID": RID}
+	log.Info(logActionGetAnalysis, logInfoAnalysis, 114, RID)
 	analysisResult, err := apiContext.APIConfiguration.DBInstance.FindOneDBAnalysis(analysisQuery)
-	if !tokenValidator.HasAuthorization(attemptToken, analysisResult.URL) {
-		log.Error(logActionGetAnalysis, logInfoAnalysis, 1027, RID)
-		reply := map[string]interface{}{"success": false, "error": "permission denied"}
-		return c.JSON(http.StatusUnauthorized, reply)
-	}
+
 	if err != nil {
 		if err == mongo.ErrNoDocuments || err.Error() == "No data found" {
 			log.Warning(logActionGetAnalysis, logInfoAnalysis, 106, RID)
-			reply := map[string]interface{}{"success": false, "error": "analysis not found"}
+			reply := map[string]interface{}{"success": false, "error": "user not found"}
 			return c.JSON(http.StatusNotFound, reply)
 		}
 		log.Error(logActionGetAnalysis, logInfoAnalysis, 1020, err)
 		reply := map[string]interface{}{"success": false, "error": "internal error"}
 		return c.JSON(http.StatusInternalServerError, reply)
 	}
+
+	if !tokenValidator.HasAuthorization(attemptToken, analysisResult.URL) {
+		log.Error(logActionGetAnalysis, logInfoAnalysis, 1027, RID)
+		reply := map[string]interface{}{"success": false, "error": "permission denied"}
+		return c.JSON(http.StatusUnauthorized, reply)
+	}
+
+	// Log the successful retrieval of analysis data
+	log.Info(logActionGetAnalysis, logInfoAnalysis, 113, "Analysis data retrieved successfully for RID:", RID)
+
+	// Add logging to capture the analysis result being returned
+	log.Info(logActionGetAnalysis, logInfoAnalysis, 113, "Analysis result:", analysisResult)
+
 	return c.JSON(http.StatusOK, analysisResult)
 }
 
