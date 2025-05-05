@@ -44,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 	if !types.IsJSONoutput {
-		fmt.Println("[HUSKYCI][*] huskyCI analysis started!", RID)
+		fmt.Println("[HUSKYCI][*] huskyCI analysis started! RID:", RID)
 	}
 
 	// step 2.1: keep querying huskyCI API to check if a given analysis has already finished.
@@ -85,9 +85,15 @@ func main() {
 	// step 3.5: integration with SonarQube
 	outputPath := "./huskyCI/"
 	outputFileName := "sonarqube.json"
+
+	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+		os.MkdirAll(outputPath, os.ModePerm)
+	}
+
 	err = sonarqube.GenerateOutputFile(huskyAnalysis, outputPath, outputFileName)
 	if err != nil {
-		fmt.Println("[HUSKYCI][ERROR] Could not create SonarQube integration file: ", err)
+		fmt.Println("[ERROR] Failed to generate SonarQube JSON file:", err)
+		os.Exit(1)
 	}
 
 	// step 4: block developer CI if vulnerabilities were found

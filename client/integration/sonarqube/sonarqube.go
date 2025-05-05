@@ -2,6 +2,7 @@ package sonarqube
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -65,57 +66,125 @@ func GenerateOutputFile(analysis types.Analysis, outputPath, outputFileName stri
 	allVulns = append(allVulns, analysis.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.HighVulns...)
 
 	var sonarOutput HuskyCISonarOutput
+	sonarOutput.Rules = make([]SonarRule, 0)
 	sonarOutput.Issues = make([]SonarIssue, 0)
 
+	ruleMap := make(map[string]bool) // Track unique rule IDs
+
+	// Generate rules and issues
 	for _, vuln := range allVulns {
-		var issue SonarIssue
-		issue.EngineID = "huskyCI"
-		issue.Type = "VULNERABILITY"
-		issue.RuleID = vuln.Language + " - " + vuln.SecurityTool
-		switch strings.ToLower(vuln.Severity) {
-		case `low`:
-			issue.Severity = "MINOR"
-		case `medium`:
-			issue.Severity = "MAJOR"
-		case `high`:
-			issue.Severity = "BLOCKER"
-		default:
-			issue.Severity = "INFO"
-		}
-		if vuln.File == "" {
-			err := util.CreateFile([]byte(placeholderFileText), outputPath, placeholderFileName)
-			if err != nil {
-				return err
+		ruleID := fmt.Sprintf("%s - %s", vuln.Language, vuln.Title)
+
+		// Add the rule only if it hasn't been added before
+		if !ruleMap[ruleID] {
+			rule := SonarRule{
+				ID:                 ruleID,
+				Name:               vuln.Title,
+				Description:        getMessage(vuln.Details),
+				EngineID:           "huskyCI/" + vuln.SecurityTool,
+				CleanCodeAttribute: "TRUSTWORTHY",
+				Type:               "VULNERABILITY",
+				Severity:           mapRuleSeverity(vuln.Severity),
+				Impacts: []SonarImpact{
+					{SoftwareQuality: "SECURITY", Severity: mapImpactSeverity(vuln.Severity)},
+				},
 			}
-			issue.PrimaryLocation.FilePath = filepath.Join(outputPath, placeholderFileName)
-		} else {
-			var filePath string
-			if vuln.Language == "Go" {
-				filePath = strings.Replace(vuln.File, goContainerBasePath, "", 1)
-			} else {
-				filePath = vuln.File
-			}
-			issue.PrimaryLocation.FilePath = filePath
+			sonarOutput.Rules = append(sonarOutput.Rules, rule)
+			ruleMap[ruleID] = true // Mark this rule ID as added
 		}
-		issue.PrimaryLocation.Message = vuln.Details
-		issue.PrimaryLocation.TextRange.StartLine = 1
-		lineNum, err := strconv.Atoi(vuln.Line)
-		if err != nil {
-			lineNum = 1
+
+		// Create an issue for the vulnerability
+		issue := SonarIssue{
+			RuleID: ruleID,
+			PrimaryLocation: SonarLocation{
+				Message:  getMessage(vuln.Version),
+				FilePath: getFilePath(vuln, outputPath),
+				TextRange: SonarTextRange{
+					StartLine: getStartLine(vuln.Line),
+				},
+			},
 		}
-		if lineNum != 1 && lineNum > 0 {
-			issue.PrimaryLocation.TextRange.StartLine = lineNum
-		}
+
+		// Add the issue to the output
 		sonarOutput.Issues = append(sonarOutput.Issues, issue)
 	}
+
+	// Serialize the output to JSON
 	sonarOutputString, err := json.Marshal(sonarOutput)
 	if err != nil {
 		return err
 	}
+
+	absolutePath, err := filepath.Abs(filepath.Join(outputPath, outputFileName))
+	if err != nil {
+		return fmt.Errorf("failed to resolve absolute path: %w", err)
+	}
+	fmt.Printf("[DEBUG] Absolute path for SonarQube JSON file: %s\n", absolutePath)
+
 	err = util.CreateFile(sonarOutputString, outputPath, outputFileName)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// Helper function to get the message for the primary location
+func getMessage(details string) string {
+	if details == "" {
+		return "No details provided for this vulnerability."
+	}
+	return details
+}
+
+// Helper function to map severity levels for rules
+func mapRuleSeverity(severity string) string {
+	switch strings.ToLower(severity) {
+	case "low":
+		return "MINOR"
+	case "medium":
+		return "MAJOR"
+	case "high":
+		return "BLOCKER"
+	default:
+		return "INFO"
+	}
+}
+
+// Helper function to map severity levels for impacts
+func mapImpactSeverity(severity string) string {
+	switch strings.ToLower(severity) {
+	case "low":
+		return "LOW"
+	case "medium":
+		return "MEDIUM"
+	case "high":
+		return "HIGH"
+	default:
+		return "INFO"
+	}
+}
+
+// Helper function to get the file path
+func getFilePath(vuln types.HuskyCIVulnerability, outputPath string) string {
+	if vuln.File == "" {
+		err := util.CreateFile([]byte(placeholderFileText), outputPath, placeholderFileName)
+		if err != nil {
+			return filepath.Join(outputPath, placeholderFileName)
+		}
+		return filepath.Join(outputPath, placeholderFileName)
+	}
+	if vuln.Language == "Go" {
+		return strings.Replace(vuln.File, goContainerBasePath, "", 1)
+	}
+	return vuln.File
+}
+
+// Helper function to get the start line
+func getStartLine(line string) int {
+	lineNum, err := strconv.Atoi(line)
+	if err != nil || lineNum <= 0 {
+		return 1
+	}
+	return lineNum
 }
