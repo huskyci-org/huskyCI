@@ -44,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 	if !types.IsJSONoutput {
-		fmt.Println("[HUSKYCI][*] huskyCI analysis started!", RID)
+		fmt.Println("[HUSKYCI][*] huskyCI analysis started! RID:", RID)
 	}
 
 	// step 2.1: keep querying huskyCI API to check if a given analysis has already finished.
