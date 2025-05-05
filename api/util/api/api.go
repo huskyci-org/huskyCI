@@ -26,22 +26,27 @@ func (hU HuskyUtils) CheckHuskyRequirements(configAPI *apiContext.APIConfig) err
 	}
 	log.Info(logActionCheckReqs, logInfoAPIUtil, 12)
 
-	// check if all docker hosts are up and running docker API.
+	// check infrastructure selection
 	infrastructureSelected, hasSelected := os.LookupEnv("HUSKYCI_INFRASTRUCTURE_USE")
-	if hasSelected && infrastructureSelected == "docker" {
-		if err := hU.CheckHandler.checkDockerHosts(configAPI); err != nil {
-			return err
+	if hasSelected {
+		if infrastructureSelected == "docker" {
+			// check if all docker hosts are up and running docker API.
+			if err := hU.CheckHandler.checkDockerHosts(configAPI); err != nil {
+				return err
+			}
+			log.Info(logActionCheckReqs, logInfoAPIUtil, 13)
+		} else if infrastructureSelected == "kubernetes" {
+			// check if all kubernetes hosts are up and running Kubernetes API.
+			if err := hU.CheckHandler.checkKubernetesHosts(configAPI); err != nil {
+				return err
+			}
+			log.Info(logActionCheckReqs, logInfoAPIUtil, 13)
+		} else {
+			return errors.New("invalid HUSKYCI_INFRASTRUCTURE_USE value")
 		}
+	} else {
+		return errors.New("HUSKYCI_INFRASTRUCTURE_USE environment variable not set")
 	}
-	log.Info(logActionCheckReqs, logInfoAPIUtil, 13)
-
-	// check if all kubernetes hosts are up and running Kubernetes API.
-	if hasSelected && infrastructureSelected == "kubernetes" {
-		if err := hU.CheckHandler.checkKubernetesHosts(configAPI); err != nil {
-			return err
-		}
-	}
-	log.Info(logActionCheckReqs, logInfoAPIUtil, 13)
 
 	// check if DB is accessible and credentials received are working.
 	if err := hU.CheckHandler.checkDB(configAPI); err != nil {
@@ -180,10 +185,13 @@ func (cH *CheckUtils) checkDefaultUser(configAPI *apiContext.APIConfig) error {
 	return nil
 }
 
-func FormatDockerHostAddress(dockerHost types.DockerAPIAddresses, configAPI *apiContext.APIConfig) string {
+func FormatDockerHostAddress(dockerHost types.DockerAPIAddresses, configAPI *apiContext.APIConfig) (string, error) {
+	if len(dockerHost.HostList) == 0 {
+		return "", errors.New("Docker host list is empty")
+	}
 	hostIndex := dockerHost.CurrentHostIndex % len(dockerHost.HostList)
 	host := dockerHost.HostList[hostIndex]
-	return fmt.Sprintf("https://%s:%d", host, configAPI.DockerHostsConfig.DockerAPIPort)
+	return fmt.Sprintf("https://%s:%d", host, configAPI.DockerHostsConfig.DockerAPIPort), nil
 }
 
 func checkSecurityTest(securityTestName string, configAPI *apiContext.APIConfig) error {
