@@ -3,7 +3,7 @@ package sonarqube_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/huskyci-org/huskyCI/client/integration/sonarqube"
 	"github.com/huskyci-org/huskyCI/client/types"
@@ -18,7 +18,7 @@ var _ = Describe("SonarQube", func() {
 		DescribeTable("Analysis containing vulnerabilities",
 			func(inputAnalysisFile, outputPath, outputFileName, expectedOutputFile string) {
 				analysisFilePath := analysisTestDataPath + inputAnalysisFile
-				analysisFileString, err := ioutil.ReadFile(analysisFilePath)
+				analysisFileString, err := os.ReadFile(analysisFilePath)
 				if err != nil {
 					Fail(fmt.Sprintf("error trying to read fixture file %s: %s", analysisFilePath, err.Error()))
 				}
@@ -33,13 +33,13 @@ var _ = Describe("SonarQube", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				expectedOutputFilePath := sonarqubeTestDataPath + expectedOutputFile
-				expectedFileString, err := ioutil.ReadFile(expectedOutputFilePath)
+				expectedFileString, err := os.ReadFile(expectedOutputFilePath)
 				if err != nil {
 					Fail(fmt.Sprintf("error trying to read fixture file %s: %s", expectedOutputFilePath, err.Error()))
 				}
 
 				testOutputFilePath := outputPath + outputFileName
-				testFileString, err := ioutil.ReadFile(testOutputFilePath)
+				testFileString, err := os.ReadFile(testOutputFilePath)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(testFileString).To(Equal(expectedFileString))
