@@ -1,14 +1,10 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package securitytest
 
 import (
 	"encoding/json"
 
-	"github.com/globocom/huskyCI/api/log"
-	"github.com/globocom/huskyCI/api/util"
+	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/util"
 )
 
 // GitAuthorsOutput is the struct that holds all commit authors from a branch.

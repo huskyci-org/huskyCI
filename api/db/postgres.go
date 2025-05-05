@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/globocom/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/types"
 )
 
 // ConnectDB will call Connect function

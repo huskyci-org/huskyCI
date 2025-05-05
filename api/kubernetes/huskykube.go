@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/globocom/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/log"
 )
 
 const logActionRun = "KubernetesRun"

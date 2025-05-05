@@ -1,7 +1,3 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package securitytest
 
 import (
@@ -10,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/globocom/huskyCI/api/util"
+	"github.com/huskyci-org/huskyCI/api/util"
 
-	"github.com/globocom/huskyCI/api/log"
-	"github.com/globocom/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/types"
 )
 
 // SecurityCodeScanOutput is the struct that holds all data from SecurityCodeScan output.

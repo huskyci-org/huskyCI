@@ -1,7 +1,3 @@
-// Copyright 2018 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package context
 
 import (
@@ -12,9 +8,9 @@ import (
 
 	cache "github.com/patrickmn/go-cache"
 
-	"github.com/globocom/huskyCI/api/db"
-	postgres "github.com/globocom/huskyCI/api/db/postgres"
-	"github.com/globocom/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/db"
+	postgres "github.com/huskyci-org/huskyCI/api/db/postgres"
+	"github.com/huskyci-org/huskyCI/api/types"
 )
 
 // APIConfiguration holds all API configuration.

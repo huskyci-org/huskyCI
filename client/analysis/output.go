@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/globocom/huskyCI/client/types"
+	"github.com/huskyci-org/huskyCI/client/types"
 )
 
 var outputJSON types.JSONOutput

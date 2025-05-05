@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/globocom/glbgelf"
-	apiContext "github.com/globocom/huskyCI/api/context"
-	apiUtil "github.com/globocom/huskyCI/api/util/api"
+	apiContext "github.com/huskyci-org/huskyCI/api/context"
+	apiUtil "github.com/huskyci-org/huskyCI/api/util/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -1,15 +1,11 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package cmd
 
 import (
 	"errors"
 	"fmt"
 
-	"github.com/globocom/huskyCI/cli/analysis"
-	"github.com/globocom/huskyCI/cli/errorcli"
+	"github.com/huskyci-org/huskyCI/cli/analysis"
+	"github.com/huskyci-org/huskyCI/cli/errorcli"
 	"github.com/spf13/cobra"
 )
 

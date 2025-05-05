@@ -1,7 +1,3 @@
-// Copyright 2021 Globo authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package kubernetes
 
 import (
@@ -9,8 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	apiContext "github.com/globocom/huskyCI/api/context"
-	"github.com/globocom/huskyCI/api/log"
+	apiContext "github.com/huskyci-org/huskyCI/api/context"
+	"github.com/huskyci-org/huskyCI/api/log"
 	goContext "golang.org/x/net/context"
 
 	core "k8s.io/api/core/v1"

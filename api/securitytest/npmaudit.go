@@ -1,7 +1,3 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package securitytest
 
 import (
@@ -9,23 +5,23 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/globocom/huskyCI/api/log"
-	"github.com/globocom/huskyCI/api/types"
-	"github.com/globocom/huskyCI/api/util"
+	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/util"
 )
 
 // NpmAuditOutput is the struct that stores all npm audit output
 type NpmAuditOutput struct {
-	Vulnerabilities      map[string]Vulnerability `json:"vulnerabilities"`
-	Metadata        	 Metadata                 `json:"metadata"`
-	PackageNotFound 	 bool
+	Vulnerabilities map[string]Vulnerability `json:"vulnerabilities"`
+	Metadata        Metadata                 `json:"metadata"`
+	PackageNotFound bool
 }
 
 // Vulnerability is the granular output of a security info found
 type Vulnerability struct {
 	Via                []ViaMessage     `json:"via"`
 	ID                 int              `json:"id"`
-	Name         	   string           `json:"name"`
+	Name               string           `json:"name"`
 	VulnerableVersions string           `json:"range"`
 	Severity           string           `json:"severity"`
 	FixAvailable       FixAvailableType `json:"fixAvailable"`
@@ -45,15 +41,15 @@ type FixAvailableTypeNPM struct {
 
 // Via holds the information of a given security issue found
 type Via struct {
-	Source     int        `json:"source"`
-	Name	   string     `json:"name"`
-	Dependency string     `json:"dependency"`
-	Title      string     `json:"title"`
-	Url        string     `json:"url"`
-	Severity   string     `json:"severity"`
-	CWE        []string   `json:"cwe"`
-	CVSS       CVSSType   `json:"cvss"`
-	Range      string     `json:"range"`
+	Source     int      `json:"source"`
+	Name       string   `json:"name"`
+	Dependency string   `json:"dependency"`
+	Title      string   `json:"title"`
+	Url        string   `json:"url"`
+	Severity   string   `json:"severity"`
+	CWE        []string `json:"cwe"`
+	CVSS       CVSSType `json:"cvss"`
+	Range      string   `json:"range"`
 }
 
 // CVSSType is the struct that holds CVSS info
@@ -77,19 +73,19 @@ type VulnerabilitiesSummary struct {
 }
 
 type ViaMessage struct {
-    Text string
+	Text string
 }
 
 func (e *ViaMessage) UnmarshalJSON(data []byte) error {
-    if len(data) == 0 || string(data) == "null" {
-        return nil
-    }
-    if data[0] == '"' && data[len(data)-1] == '"' {
-        return json.Unmarshal(data, &e.Text)
-    }
-    if data[0] == '{' && data[len(data)-1] == '}' {
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+	if data[0] == '"' && data[len(data)-1] == '"' {
+		return json.Unmarshal(data, &e.Text)
+	}
+	if data[0] == '{' && data[len(data)-1] == '}' {
 		tmp := Via{}
-        if err := json.Unmarshal(data, &tmp); err != nil {
+		if err := json.Unmarshal(data, &tmp); err != nil {
 			return err
 		}
 		e.Text = ""
@@ -107,35 +103,34 @@ func (e *ViaMessage) UnmarshalJSON(data []byte) error {
 		e.Text += fmt.Sprintf("\tCVSS: %s (%s)\n", tmp.CVSS.Score.String(), tmp.CVSS.VectorString)
 		e.Text += fmt.Sprintf("\tVersion Range: %s\n", tmp.Range)
 		return nil
-    }
-    return fmt.Errorf("unsupported Via field")
+	}
+	return fmt.Errorf("unsupported Via field")
 }
 
-
 func (e *FixAvailableType) UnmarshalJSON(data []byte) error {
-    if len(data) == 0 || string(data) == "null" {
-        return nil
-    }
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
 	if string(data) == "false" {
 		e.Text = "false"
-        return nil
-    }
+		return nil
+	}
 	if string(data) == "true" {
 		e.Text = "true"
-        return nil
-    }
-    if data[0] == '"' && data[len(data)-1] == '"' {
-        return json.Unmarshal(data, &e.Text)
-    }
-    if data[0] == '{' && data[len(data)-1] == '}' {
+		return nil
+	}
+	if data[0] == '"' && data[len(data)-1] == '"' {
+		return json.Unmarshal(data, &e.Text)
+	}
+	if data[0] == '{' && data[len(data)-1] == '}' {
 		tmp := FixAvailableTypeNPM{}
-        if err := json.Unmarshal(data, &tmp); err != nil {
+		if err := json.Unmarshal(data, &tmp); err != nil {
 			return err
 		}
 		e.Text = fmt.Sprintf("Fix available: %s %s", tmp.Name, tmp.Version)
 		return nil
-    }
-    return fmt.Errorf("unsupported fixAvailable field")
+	}
+	return fmt.Errorf("unsupported fixAvailable field")
 }
 
 func analyzeNpmaudit(npmAuditScan *SecTestScanInfo) error {

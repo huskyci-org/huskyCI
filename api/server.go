@@ -1,7 +1,3 @@
-// Copyright 2018 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package main
 
 import (
@@ -12,12 +8,12 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 
-	"github.com/globocom/huskyCI/api/auth"
-	apiContext "github.com/globocom/huskyCI/api/context"
-	"github.com/globocom/huskyCI/api/log"
-	"github.com/globocom/huskyCI/api/routes"
-	"github.com/globocom/huskyCI/api/util"
-	apiUtil "github.com/globocom/huskyCI/api/util/api"
+	"github.com/huskyci-org/huskyCI/api/auth"
+	apiContext "github.com/huskyci-org/huskyCI/api/context"
+	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/routes"
+	"github.com/huskyci-org/huskyCI/api/util"
+	apiUtil "github.com/huskyci-org/huskyCI/api/util/api"
 )
 
 func main() {

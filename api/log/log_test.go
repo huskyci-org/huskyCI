@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	apiContext "github.com/globocom/huskyCI/api/context"
+	apiContext "github.com/huskyci-org/huskyCI/api/context"
 
-	"github.com/globocom/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/log"
 )
 
 func TestInitLog(t *testing.T) {

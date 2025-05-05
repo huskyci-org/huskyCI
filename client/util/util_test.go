@@ -1,7 +1,3 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package util_test
 
 import (
@@ -9,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/globocom/huskyCI/client/util"
+	"github.com/huskyci-org/huskyCI/client/util"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

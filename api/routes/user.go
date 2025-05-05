@@ -1,7 +1,3 @@
-// Copyright 2019 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package routes
 
 import (
@@ -10,13 +6,13 @@ import (
 	"encoding/base64"
 	"hash"
 
-	"github.com/globocom/huskyCI/api/auth"
-	apiContext "github.com/globocom/huskyCI/api/context"
-	"github.com/globocom/huskyCI/api/log"
-	"github.com/globocom/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/auth"
+	apiContext "github.com/huskyci-org/huskyCI/api/context"
+	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/types"
 	"github.com/labstack/echo"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/pbkdf2"
-	"gopkg.in/mgo.v2"
 )
 
 // UpdateUser edits an user
@@ -92,7 +88,7 @@ func UpdateUser(c echo.Context) error {
 
 	// step 5.2: update user
 	if err := apiContext.APIConfiguration.DBInstance.UpdateOneDBUser(userQuery, updatedUser); err != nil {
-		if err == mgo.ErrNotFound || err.Error() == "No data found" {
+		if err == mongo.ErrNoDocuments || err.Error() == "No data found" {
 			reply := map[string]interface{}{"success": false, "error": "user not found"}
 			return c.JSON(http.StatusNotFound, reply)
 		}

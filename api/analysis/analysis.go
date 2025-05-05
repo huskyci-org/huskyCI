@@ -1,18 +1,14 @@
-// Copyright 2018 Globo.com authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package analysis
 
 import (
 	"time"
 
-	apiContext "github.com/globocom/huskyCI/api/context"
-	"github.com/globocom/huskyCI/api/log"
-	"github.com/globocom/huskyCI/api/securitytest"
-	"github.com/globocom/huskyCI/api/types"
-	apiUtil "github.com/globocom/huskyCI/api/util/api"
-	"gopkg.in/mgo.v2/bson"
+	apiContext "github.com/huskyci-org/huskyCI/api/context"
+	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/securitytest"
+	"github.com/huskyci-org/huskyCI/api/types"
+	apiUtil "github.com/huskyci-org/huskyCI/api/util/api"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 const logActionStart = "StartAnalysis"

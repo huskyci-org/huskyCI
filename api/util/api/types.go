@@ -1,7 +1,7 @@
 package util
 
 import (
-	apiContext "github.com/globocom/huskyCI/api/context"
+	apiContext "github.com/huskyci-org/huskyCI/api/context"
 )
 
 // CheckInterface is the interface that stores all check functions.
