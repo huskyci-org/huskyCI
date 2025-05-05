@@ -2,7 +2,7 @@ package routes_test
 
 import (
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
-	"github.com/ghuskyci-org/huskyCI/api/routes"
+	"github.com/huskyci-org/huskyCI/api/routes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
