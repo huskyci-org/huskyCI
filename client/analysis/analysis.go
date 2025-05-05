@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -25,8 +25,8 @@ func StartAnalysis() (string, error) {
 	huskyStartAnalysisURL := config.HuskyAPI + "/analysis"
 
 	requestPayload := types.JSONPayload{
-		RepositoryURL:    config.RepositoryURL,
-		RepositoryBranch: config.RepositoryBranch,
+		RepositoryURL:      config.RepositoryURL,
+		RepositoryBranch:   config.RepositoryBranch,
 		LanguageExclusions: config.LanguageExclusions,
 	}
 
@@ -83,6 +83,8 @@ func GetAnalysis(RID string) (types.Analysis, error) {
 
 	analysis := types.Analysis{}
 	getAnalysisURL := config.HuskyAPI + "/analysis/" + RID
+
+	fmt.Println("[HUSKYCI][*] Waiting for analysis completion...")
 
 	httpClient, err := util.NewClient(config.HuskyUseTLS)
 	if err != nil {
