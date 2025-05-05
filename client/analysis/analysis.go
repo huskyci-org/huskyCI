@@ -105,7 +105,12 @@ func GetAnalysis(RID string) (types.Analysis, error) {
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		errorMsg := fmt.Sprintf("Error getting analysis! StatusCode received: %d", resp.StatusCode)
+		return analysis, errors.New(errorMsg)
+	}
+
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return analysis, err
 	}
