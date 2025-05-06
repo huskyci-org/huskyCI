@@ -76,19 +76,19 @@ ERROR: Job failed: exit code 190
 
 ## Getting Started
 
-You can try huskyCI by setting up a local environment using Docker Compose following [this guide](https://huskyci.opensource.globo.com/docs/quickstart/local-installation/).
+You can try huskyCI by setting up a local environment using Docker Compose following [this guide]([https://huskyci.opensource.globo.com/docs/quickstart/local-installation/](https://github.com/huskyci-org/huskyCI/wiki/3.-Getting-Started#local-installation)).
 
 ## Documentation
 
-All guides and the full documentation can be found in the [official documentation page](https://huskyci.opensource.globo.com/docs/quickstart/overview).
+All guides and the full documentation can be found in the [official documentation page]([https://huskyci.opensource.globo.com/docs/quickstart/overview](https://github.com/huskyci-org/huskyCI/wiki)).
 
 ## Contributing
 
-Read our [contributing guide](https://github.com/globocom/huskyCI/blob/master/CONTRIBUTING.md) to learn about our development process, how to propose bugfixes and improvements, and how to build and test your changes to huskyCI.
+Read our [contributing guide](https://github.com/huskyci-org/huskyCI/blob/main/CONTRIBUTING.md) to learn about our development process, how to propose bugfixes and improvements, and how to build and test your changes to huskyCI.
 
 ## License
 
-huskyCI is licensed under the [BSD 3-Clause "New" or "Revised" License](https://github.com/globocom/huskyCI/blob/master/LICENSE.md).
+huskyCI is licensed under the [BSD 3-Clause "New" or "Revised" License](https://github.com/huskyci-org/huskyCI/blob/main/LICENSE.md).
 
 [Bandit]: https://github.com/PyCQA/bandit
 [Safety]: https://github.com/pyupio/safety
