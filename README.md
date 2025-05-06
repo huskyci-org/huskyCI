@@ -1,102 +1,105 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/wiki/globocom/huskyCI/images/huskyCI-logo.png" align="center" height="" />
+  <img src="https://raw.githubusercontent.com/wiki/huskyci-org/huskyCI/images/huskyCI-logo.png" align="center" height="" />
   <!-- logo font: Anton -->
 </p>
 
 <p align="center">
   <a href="https://github.com/globocom/huskyCI/releases"><img src="https://img.shields.io/github/v/release/globocom/huskyCI"/></a>
   <a href="https://github.com/rafaveira3/writing-and-presentations/blob/master/DEFCON-27-APP-SEC-VILLAGE-Rafael-Santos-huskyCI-Finding-security-flaws-in-CI-before-deploying-them.pdf"><img src="https://img.shields.io/badge/DEFCON%2027-AppSec%20Village-black"/></a>
-<a href="https://github.com/rafaveira3/contributions/blob/master/huskyCI-BlackHat-Europe-2019.pdf"><img src="https://img.shields.io/badge/Black%20Hat%20Europe%202019-Arsenal-black"/></a>
-<a href="https://defectdojo.readthedocs.io/en/latest/integrations.html#huskyci-report"><img src="https://img.shields.io/badge/DefectDojo-Compatible-brightgreen"/></a>
+  <a href="https://github.com/rafaveira3/contributions/blob/master/huskyCI-BlackHat-Europe-2019.pdf"><img src="https://img.shields.io/badge/Black%20Hat%20Europe%202019-Arsenal-black"/></a>
+  <a href="https://defectdojo.readthedocs.io/en/latest/integrations.html#huskyci-report"><img src="https://img.shields.io/badge/DefectDojo-Compatible-brightgreen"/></a>
 </p>
 
-*This article can also be read in [Brazilian Portuguese](README-ptBR.md).*
+---
 
-## Introduction
+## Overview
 
-huskyCI is an open source tool that orchestrates security tests and centralizes all results into a database for further analysis and metrics. It can perform static security analysis in Python ([Bandit][Bandit] and [Safety][Safety]), Ruby ([Brakeman][Brakeman]), JavaScript ([Npm Audit][NpmAudit] and [Yarn Audit][YarnAudit]), Golang ([Gosec][Gosec]), Java ([SpotBugs][SpotBugs] plus [Find Sec Bugs][FindSec]), and HCL ([TFSec][TFSec]). It can also audit repositories for secrets like AWS Secret Keys, Private SSH Keys, and many others using [GitLeaks][Gitleaks].
+HuskyCI is an open-source tool designed to orchestrate security tests within CI pipelines, centralizing results into a database for further analysis and metrics. It supports multiple programming languages and integrates with popular static analysis tools to identify vulnerabilities early in the development lifecycle.
 
-## How does it work?
+### Key Features
 
-Developers can set up a new stage into their CI pipelines to check for vulnerabilities:
+- **Multi-language support**: Python, Ruby, JavaScript, Golang, Java, HCL, and more.
+- **Secrets detection**: Audit repositories for sensitive information like AWS keys and SSH private keys.
+- **Integration-ready**: Works seamlessly with CI/CD pipelines like GitLab CI/CD.
+- **Extensible**: Add new tools and customize configurations.
+- **Infrastructure support**: Compatible with Docker and Kubernetes.
 
-<p align="center"><img src="huskyCI-stage.png"/></p>
+---
 
-If security issues are found in the code, the severity, the confidence, the file, the line, and many more useful information can be shown, as exemplified:
+## Installation
 
-```
-[HUSKYCI][*] poc-python-bandit -> https://github.com/globocom/huskyCI.git
-[HUSKYCI][*] huskyCI analysis started! yDS9tb9mdt4QnnyvOBp3eVAXE1nWpTRQ
+### Prerequisites
 
-[HUSKYCI][!] Title: Use of exec detected.
-[HUSKYCI][!] Language: Python
-[HUSKYCI][!] Tool: Bandit
-[HUSKYCI][!] Severity: MEDIUM
-[HUSKYCI][!] Confidence: HIGH
-[HUSKYCI][!] Details: Use of exec detected.
-[HUSKYCI][!] File: ./main.py
-[HUSKYCI][!] Line: 7
-[HUSKYCI][!] Code:
-6
-7 exec(command)
-8
+- **Docker** and **Docker Compose** installed.
+- **Golang** installed (for development purposes).
 
-[HUSKYCI][!] Title: Possible hardcoded password: 'password123!'
-[HUSKYCI][!] Language: Python
-[HUSKYCI][!] Tool: Bandit
-[HUSKYCI][!] Severity: LOW
-[HUSKYCI][!] Confidence: MEDIUM
-[HUSKYCI][!] Details: Possible hardcoded password: 'password123!'
-[HUSKYCI][!] File: ./main.py
-[HUSKYCI][!] Line: 1
-[HUSKYCI][!] Code:
-1 secret = 'password123!'
-2
-3 password = 'thisisnotapassword' #nohusky
-4
+### Steps
 
-[HUSKYCI][SUMMARY] Python -> huskyci/bandit:1.6.2
-[HUSKYCI][SUMMARY] High: 0
-[HUSKYCI][SUMMARY] Medium: 1
-[HUSKYCI][SUMMARY] Low: 1
-[HUSKYCI][SUMMARY] NoSecHusky: 1
+1. Clone the repository:
 
-[HUSKYCI][SUMMARY] Total
-[HUSKYCI][SUMMARY] High: 0
-[HUSKYCI][SUMMARY] Medium: 1
-[HUSKYCI][SUMMARY] Low: 1
-[HUSKYCI][SUMMARY] NoSecHusky: 1
+   ```bash
+   git clone https://github.com/globocom/huskyCI.git
+   cd huskyCI
+   ```
 
-[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:
-[HUSKYCI][*] [huskyci/gitleaks:2.1.0]
-[HUSKYCI][*] Some HIGH/MEDIUM issues were found in these securityTests:
-[HUSKYCI][*] [huskyci/bandit:1.6.2]
-ERROR: Job failed: exit code 190
-```
+2. Install dependencies and set up the environment:
 
-## Getting Started
+   ```bash
+   make install
+   ```
 
-You can try huskyCI by setting up a local environment using Docker Compose following [this guide](https://github.com/huskyci-org/huskyCI/wiki/3.-Getting-Started#local-installation).
+3. Start the HuskyCI environment:
+
+   ```bash
+   make compose
+   ```
+
+---
+
+## Usage
+
+### Running a Security Analysis
+
+1. Set up environment variables:
+
+   ```bash
+   export HUSKYCI_CLIENT_REPO_URL="https://github.com/huskyci-org/huskyCI.git"
+   export HUSKYCI_CLIENT_REPO_BRANCH="master"
+   export HUSKYCI_CLIENT_API_ADDR="http://localhost:8888"
+   export HUSKYCI_CLIENT_API_USE_HTTPS="false"
+   export HUSKYCI_CLIENT_TOKEN="{YOUR_TOKEN_HERE}"
+   ```
+
+2. Run the HuskyCI client:
+
+   ```bash
+   make run-client
+   ```
+
+3. View results in the terminal.
+
+### Integrating with CI/CD
+
+Refer to the [integration guide](https://github.com/huskyci-org/huskyCI/wiki/4.-Guides.md) for detailed instructions on adding HuskyCI to your CI/CD pipeline.
+
+---
 
 ## Documentation
 
-All guides and the full documentation can be found in the [official documentation page](https://github.com/huskyci-org/huskyCI/wiki).
+Comprehensive documentation is available in the [HuskyCI Wiki](https://github.com/huskyci-org/huskyCI/wiki). It includes:
+
+- [Getting Started](https://github.com/huskyci-org/huskyCI/wiki/3.-Getting-Started.md)
+- [API Reference](https://github.com/huskyci-org/huskyCI/wiki/5.-API.md)
+- [Integration Guides](https://github.com/huskyci-org/huskyCI/wiki/4.-Guides.md)
+
+---
 
 ## Contributing
 
-Read our [contributing guide](https://github.com/huskyci-org/huskyCI/blob/main/CONTRIBUTING.md) to learn about our development process, how to propose bugfixes and improvements, and how to build and test your changes to huskyCI.
+We welcome contributions! Please read our [contributing guide](https://github.com/huskyci-org/huskyCI/blob/master/CONTRIBUTING.md) to learn about our development process and how to propose changes.
+
+---
 
 ## License
 
-huskyCI is licensed under the [BSD 3-Clause "New" or "Revised" License](https://github.com/huskyci-org/huskyCI/blob/main/LICENSE.md).
-
-[Bandit]: https://github.com/PyCQA/bandit
-[Safety]: https://github.com/pyupio/safety
-[Brakeman]: https://github.com/presidentbeef/brakeman
-[Gosec]: https://github.com/securego/gosec
-[NpmAudit]: https://docs.npmjs.com/cli/audit
-[YarnAudit]: https://yarnpkg.com/lang/en/docs/cli/audit/
-[Gitleaks]: https://github.com/zricethezav/gitleaks
-[SpotBugs]: https://spotbugs.github.io
-[FindSec]: https://find-sec-bugs.github.io
-[TFSec]: https://github.com/liamg/tfsec
+HuskyCI is licensed under the [BSD 3-Clause License](https://github.com/huskyci-org/huskyCI/blob/master/LICENSE.md).
