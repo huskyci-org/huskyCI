@@ -38,7 +38,7 @@ HuskyCI is an open-source tool designed to orchestrate security tests within CI 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/globocom/huskyCI.git
+   git clone https://github.com/huskyci-org/huskyCI.git
    cd huskyCI
    ```
 
