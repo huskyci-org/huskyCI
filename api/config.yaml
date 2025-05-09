@@ -1,96 +1,3 @@
-enry:
-  name: enry
-  image: huskyci/enry
-  imageTag: v1.2.0
-  cmd: |+
-    mkdir -p ~/.ssh &&
-    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
-    chmod 600 ~/.ssh/huskyci_id_rsa &&
-    echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
-    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
-    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneEnry
-    if [ $? -eq 0 ]; then
-      cd code
-      enry --json | tr -d '\r\n' 2> /tmp/errorRunEnry
-      if [ $? -ne 0 ]; then
-        echo "ERROR_RUNNING_ENRY"
-        cat /tmp/errorRunEnry
-      fi
-    else
-      echo "ERROR_CLONING"
-      cat /tmp/errorGitCloneEnry
-    fi
-  type: Enry
-  default: true
-  timeOutInSeconds: 180
-
-gitauthors:
-  name: gitauthors
-  image: huskyci/gitauthors
-  imageTag: "2.18.4"
-  cmd: |+
-    mkdir -p ~/.ssh &&
-    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
-    chmod 600 ~/.ssh/huskyci_id_rsa &&
-    echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
-    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
-    GIT_TERMINAL_PROMPT=0 git clone %GIT_REPO% code --quiet 2> /tmp/errorGitCloneEnry
-    cd code
-    git branch -a | egrep 'remotes/origin/master' 1> /dev/null 2> /dev/null
-    if [ $? -ne 0 ]; then
-      echo "{\"authors\":[]}"
-      exit 0
-    fi
-    git checkout %GIT_BRANCH% --quiet
-    if [ $? -eq 0 ]; then
-      for i in $(git log origin/master.. --pretty="%ae" | sort -u); do
-        jsonMiddle="\"${i//[^A-Za-z0-9_\.@-]/}\",$jsonMiddle"
-      done
-      echo "{\"authors\":[${jsonMiddle%?}]}"
-    else
-      echo "ERROR_CLONING"
-      cat /tmp/errorGitCloneEnry
-    fi
-  type: Generic
-  default: true
-  timeOutInSeconds: 60
-
-gosec:
-  name: gosec
-  image: huskyci/gosec
-  imageTag: v2.3.0
-  cmd: |+
-    mkdir -p ~/.ssh &&
-    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/id_rsa &&
-    chmod 600 ~/.ssh/id_rsa &&
-    echo "IdentityFile ~/.ssh/id_rsa" >> /etc/ssh/ssh_config &&
-    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
-    gitURL="%GIT_SSH_URL%"
-    gitURLSubtitute="%GIT_URL_TO_SUBSTITUTE%"
-    if [ "$gitURL" != "nil" ] && [ "$gitURLSubstitute" != "nil" ]; then
-      i=1
-      for eachGitURL in $gitURL; do
-          eachGitURLSubstitute=`echo $gitURLSubtitute | awk -v position=$i '{print $position}'`
-          git config --global url."$eachGitURL:".insteadOf "$eachGitURLSubstitute"
-          i=$((i+1))
-      done
-    fi
-    cd src
-    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneGosec
-    if [ $? -eq 0 ]; then
-      cd code
-      touch results.json
-      $(which gosec) -quiet -fmt=json -nosec-tag nohusky -log=log.txt -out=results.json ./... 2> /dev/null
-      jq -j -M -c . results.json
-    else
-      echo "ERROR_CLONING"
-      cat /tmp/errorGitCloneGosec
-    fi
-  type: Language
-  language: Go
-  default: true
-  timeOutInSeconds: 360
-
 bandit:
   name: bandit
   image: huskyci/bandit
@@ -154,6 +61,168 @@ brakeman:
   default: true
   timeOutInSeconds: 360
 
+enry:
+  name: enry
+  image: huskyci/enry
+  imageTag: v1.2.0
+  cmd: |+
+    mkdir -p ~/.ssh &&
+    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
+    chmod 600 ~/.ssh/huskyci_id_rsa &&
+    echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
+    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
+    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneEnry
+    if [ $? -eq 0 ]; then
+      cd code
+      enry --json | tr -d '\r\n' 2> /tmp/errorRunEnry
+      if [ $? -ne 0 ]; then
+        echo "ERROR_RUNNING_ENRY"
+        cat /tmp/errorRunEnry
+      fi
+    else
+      echo "ERROR_CLONING"
+      cat /tmp/errorGitCloneEnry
+    fi
+  type: Enry
+  default: true
+  timeOutInSeconds: 180
+
+gitauthors:
+  name: gitauthors
+  image: huskyci/gitauthors
+  imageTag: "2.18.4"
+  cmd: |+
+    mkdir -p ~/.ssh &&
+    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
+    chmod 600 ~/.ssh/huskyci_id_rsa &&
+    echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
+    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
+    GIT_TERMINAL_PROMPT=0 git clone %GIT_REPO% code --quiet 2> /tmp/errorGitCloneEnry
+    cd code
+    git branch -a | egrep 'remotes/origin/master' 1> /dev/null 2> /dev/null
+    if [ $? -ne 0 ]; then
+      echo "{\"authors\":[]}"
+      exit 0
+    fi
+    git checkout %GIT_BRANCH% --quiet
+    if [ $? -eq 0 ]; then
+      for i in $(git log origin/master.. --pretty="%ae" | sort -u); do
+        jsonMiddle="\"${i//[^A-Za-z0-9_\.@-]/}\",$jsonMiddle"
+      done
+      echo "{\"authors\":[${jsonMiddle%?}]}"
+    else
+      echo "ERROR_CLONING"
+      cat /tmp/errorGitCloneEnry
+    fi
+  type: Generic
+  default: true
+  timeOutInSeconds: 60
+
+gitleaks:
+  name: gitleaks
+  image: huskyci/gitleaks
+  imageTag: "v.7.6.1"
+  cmd: |+
+    mkdir -p ~/.ssh &&
+    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
+    chmod 600 ~/.ssh/huskyci_id_rsa &&
+    echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
+    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
+    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneGitleaks
+    if [ $? -eq 0 ]; then
+        touch /tmp/results.json
+        $(which gitleaks) --no-git --report=/tmp/results.json --path=./code --branch=%GIT_BRANCH% --append-repo-config --threads=2 --format=json &> /tmp/errorGitleaks
+        if [[ $? -eq 124 || $? -eq 143 ]]; then #timeout exit codes
+            echo 'ERROR_TIMEOUT_GITLEAKS'
+            cat /tmp/errorGitleaks
+        elif [ $? -eq 2 ]; then
+            echo 'ERROR_RUNNING_GITLEAKS'
+            cat /tmp/errorGitleaks
+        else
+            jq -j -M -c . /tmp/results.json
+        fi
+    else
+        echo "ERROR_CLONING"
+        cat /tmp/errorGitCloneGitleaks
+    fi
+  type: Generic
+  default: true
+  timeOutInSeconds: 360
+
+gosec:
+  name: gosec
+  image: huskyci/gosec
+  imageTag: v2.3.0
+  cmd: |+
+    mkdir -p ~/.ssh &&
+    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/id_rsa &&
+    chmod 600 ~/.ssh/id_rsa &&
+    echo "IdentityFile ~/.ssh/id_rsa" >> /etc/ssh/ssh_config &&
+    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
+    gitURL="%GIT_SSH_URL%"
+    gitURLSubtitute="%GIT_URL_TO_SUBSTITUTE%"
+    if [ "$gitURL" != "nil" ] && [ "$gitURLSubstitute" != "nil" ]; then
+      i=1
+      for eachGitURL in $gitURL; do
+          eachGitURLSubstitute=`echo $gitURLSubtitute | awk -v position=$i '{print $position}'`
+          git config --global url."$eachGitURL:".insteadOf "$eachGitURLSubstitute"
+          i=$((i+1))
+      done
+    fi
+    cd src
+    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneGosec
+    if [ $? -eq 0 ]; then
+      cd code
+      touch results.json
+      $(which gosec) -quiet -fmt=json -nosec-tag nohusky -log=log.txt -out=results.json ./... 2> /dev/null
+      jq -j -M -c . results.json
+    else
+      echo "ERROR_CLONING"
+      cat /tmp/errorGitCloneGosec
+    fi
+  type: Language
+  language: Go
+  default: true
+  timeOutInSeconds: 360
+
+npmaudit:
+  name: npmaudit
+  image: huskyci/npmaudit
+  imageTag: "9.6.6"
+  cmd: |+
+    mkdir -p ~/.ssh &&
+    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
+    chmod 600 ~/.ssh/huskyci_id_rsa &&
+    echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
+    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
+    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneNpmAudit
+    if [ $? -eq 0 ]; then
+      cd code
+      if [ -f .npmrc ]; then
+        rm -f .npmrc
+      fi
+      if [ -f package-lock.json ]; then
+        npm audit --production --json --audit-level none > /tmp/results.json 2> /tmp/errorNpmaudit
+        if [ $? -eq 0 ]; then
+          jq -j -M -c . /tmp/results.json
+        else
+          echo 'ERROR_RUNNING_NPM_AUDIT'
+          cat /tmp/errorNpmaudit
+        fi
+      else
+        if [ ! -f yarn.lock ]; then
+          echo 'ERROR_PACKAGE_LOCK_NOT_FOUND'
+        fi
+      fi
+    else
+      echo "ERROR_CLONING"
+      cat /tmp/errorGitCloneNpmAudit
+    fi
+  type: Language
+  language: JavaScript
+  default: true
+  timeOutInSeconds: 360
+
 safety:
   name: safety
   image: huskyci/safety
@@ -200,77 +269,32 @@ safety:
   default: true
   timeOutInSeconds: 360
 
-npmaudit:
-  name: npmaudit
-  image: huskyci/npmaudit
-  imageTag: "9.6.6"
+securitycodescan:
+  name: securitycodescan
+  image: huskyci/securitycodescan
+  imageTag: "v5.6.2"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
     chmod 600 ~/.ssh/huskyci_id_rsa &&
     echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
     echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
-    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneNpmAudit
-    if [ $? -eq 0 ]; then
-      cd code
-      if [ -f .npmrc ]; then
-        rm -f .npmrc
-      fi
-      if [ -f package-lock.json ]; then
-        npm audit --production --json --audit-level none > /tmp/results.json 2> /tmp/errorNpmaudit
-        if [ $? -eq 0 ]; then
-          jq -j -M -c . /tmp/results.json
-        else
-          echo 'ERROR_RUNNING_NPM_AUDIT'
-          cat /tmp/errorNpmaudit
-        fi
-      else
-        if [ ! -f yarn.lock ]; then
-          echo 'ERROR_PACKAGE_LOCK_NOT_FOUND'
-        fi
-      fi
-    else
-      echo "ERROR_CLONING"
-      cat /tmp/errorGitCloneNpmAudit
-    fi
-  type: Language
-  language: JavaScript
-  default: true
-  timeOutInSeconds: 360
-
-yarnaudit:
-  name: yarnaudit
-  image: huskyci/yarnaudit
-  imageTag: "1.22.19"
-  cmd: |+
-    mkdir -p ~/.ssh &&
-    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
-    chmod 600 ~/.ssh/huskyci_id_rsa &&
-    echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
-    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
-    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneYarnAudit
+    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneSecurityCodeScan
     if [ $? -eq 0 ]; then
         cd code
-        if [ -f yarn.lock ]; then
-            yarn audit --level moderate --prod --groups dependencies --json > /tmp/results.json 2> /tmp/errorYarnAudit
-            if [ ! -s /tmp/errorYarnAudit ]; then
-                jq -c -M -j --slurp '{advisories: (. | map(select(.type == "auditAdvisory") | .data.advisory)), metadata: (. | map(select(.type == "auditSummary") | .data) | add)}' /tmp/results.json > /tmp/output.json
-                cat /tmp/output.json
-            else
-                echo -n 'ERROR_RUNNING_YARN_AUDIT'
-                cat /tmp/errorYarnAudit
-            fi
+        security-scan `find . -type f -name "*.sln"` --ignore-msbuild-errors --no-banner --export=/tmp/securityCodeScanResults.json > /tmp/securityCodeScanOutput 2>&1
+        if [ -f /tmp/securityCodeScanResults.json ]; then
+            cat /tmp/securityCodeScanResults.json
         else
-            if [ ! -f package-lock.json ]; then
-                echo 'ERROR_YARN_LOCK_NOT_FOUND'
-            fi
+            echo "ERROR_SECURITY_CODE_SCAN_RUNNING"
+            cat /tmp/securityCodeScanOutput
         fi
     else
-        echo "ERROR_CLONING"
-        cat /tmp/errorGitCloneYarnAudit
+      echo "ERROR_CLONING"
+      cat /tmp/errorGitCloneSecurityCodeScan
     fi
   type: Language
-  language: JavaScript
+  language: C#
   default: true
   timeOutInSeconds: 360
 
@@ -330,87 +354,60 @@ spotbugs:
   default: false
   timeOutInSeconds: 3600
 
-gitleaks:
-  name: gitleaks
-  image: huskyci/gitleaks
-  imageTag: "v.7.6.1"
+trivy:
+  name: trivy
+  image: huskyciorg/trivy
+  imageTag: "0.62.1"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
     chmod 600 ~/.ssh/huskyci_id_rsa &&
     echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
     echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
-    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneGitleaks
+    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneTrivy
     if [ $? -eq 0 ]; then
-        touch /tmp/results.json
-        $(which gitleaks) --no-git --report=/tmp/results.json --path=./code --branch=%GIT_BRANCH% --append-repo-config --threads=2 --format=json &> /tmp/errorGitleaks
-        if [[ $? -eq 124 || $? -eq 143 ]]; then #timeout exit codes
-            echo 'ERROR_TIMEOUT_GITLEAKS'
-            cat /tmp/errorGitleaks
-        elif [ $? -eq 2 ]; then
-            echo 'ERROR_RUNNING_GITLEAKS'
-            cat /tmp/errorGitleaks
-        else
-            jq -j -M -c . /tmp/results.json
-        fi
+      trivy fs --format json ./code > results.json
+      jq -j -M -c . results.json
     else
-        echo "ERROR_CLONING"
-        cat /tmp/errorGitCloneGitleaks
+      echo "ERROR_CLONING"
+      cat /tmp/errorGitCloneTrivy
     fi
   type: Generic
   default: true
-  timeOutInSeconds: 360
+  timeOutInSeconds: 600
 
-tfsec:
-  name: tfsec
-  image: huskyci/tfsec
-  imageTag: "0.58.15"
+yarnaudit:
+  name: yarnaudit
+  image: huskyci/yarnaudit
+  imageTag: "1.22.19"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
     chmod 600 ~/.ssh/huskyci_id_rsa &&
     echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
     echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
-    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneTFSec
-    if [ $? -eq 0 ]; then
-        tfsec code --format=json > pre-results.json 2>&1
-        cat pre-results.json | grep -v "WARNING" > results.json
-        grep "WARNING" pre-results.json | jq -R . | jq -s '{"warnings": .}' > warning.json
-        cat results.json warning.json | jq -s add | jq -j -M -c .
-    else
-      echo "ERROR_CLONING"
-      cat /tmp/errorGitCloneTFSec
-    fi
-  type: Language
-  language: HCL
-  default: true
-  timeOutInSeconds: 360
-
-securitycodescan:
-  name: securitycodescan
-  image: huskyci/securitycodescan
-  imageTag: "v5.6.2"
-  cmd: |+
-    mkdir -p ~/.ssh &&
-    echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
-    chmod 600 ~/.ssh/huskyci_id_rsa &&
-    echo "IdentityFile ~/.ssh/huskyci_id_rsa" >> /etc/ssh/ssh_config &&
-    echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config &&
-    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneSecurityCodeScan
+    GIT_TERMINAL_PROMPT=0 git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code --quiet 2> /tmp/errorGitCloneYarnAudit
     if [ $? -eq 0 ]; then
         cd code
-        security-scan `find . -type f -name "*.sln"` --ignore-msbuild-errors --no-banner --export=/tmp/securityCodeScanResults.json > /tmp/securityCodeScanOutput 2>&1
-        if [ -f /tmp/securityCodeScanResults.json ]; then
-            cat /tmp/securityCodeScanResults.json
+        if [ -f yarn.lock ]; then
+            yarn audit --level moderate --prod --groups dependencies --json > /tmp/results.json 2> /tmp/errorYarnAudit
+            if [ ! -s /tmp/errorYarnAudit ]; then
+                jq -c -M -j --slurp '{advisories: (. | map(select(.type == "auditAdvisory") | .data.advisory)), metadata: (. | map(select(.type == "auditSummary") | .data) | add)}' /tmp/results.json > /tmp/output.json
+                cat /tmp/output.json
+            else
+                echo -n 'ERROR_RUNNING_YARN_AUDIT'
+                cat /tmp/errorYarnAudit
+            fi
         else
-            echo "ERROR_SECURITY_CODE_SCAN_RUNNING"
-            cat /tmp/securityCodeScanOutput
+            if [ ! -f package-lock.json ]; then
+                echo 'ERROR_YARN_LOCK_NOT_FOUND'
+            fi
         fi
     else
-      echo "ERROR_CLONING"
-      cat /tmp/errorGitCloneSecurityCodeScan
+        echo "ERROR_CLONING"
+        cat /tmp/errorGitCloneYarnAudit
     fi
   type: Language
-  language: C#
+  language: JavaScript
   default: true
   timeOutInSeconds: 360
