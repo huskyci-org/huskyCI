@@ -28,6 +28,7 @@ docker tag "huskyciorg/safety:latest" "huskyciorg/safety:$safetyVersion"
 docker tag "huskyciorg/gitleaks:latest" "huskyciorg/gitleaks:$gitleaksVersion"
 docker tag "huskyciorg/spotbugs:latest" "huskyciorg/spotbugs:$spotbugsVersion"
 docker tag "huskyciorg/tfsec:latest" "huskyciorg/tfsec:$tfsecVersion"
+docker tag "huskyciorg/trivy:latest" "huskyciorg/trivy:$trivyVersion"
 docker tag "huskyciorg/securitycodescan:latest" "huskyciorg/securitycodescan:$securitycodescanVersion"
 
 docker push "huskyciorg/bandit:latest" && docker push "huskyciorg/bandit:$banditVersion"
@@ -41,4 +42,5 @@ docker push "huskyciorg/safety:latest" && docker push "huskyciorg/safety:$safety
 docker push "huskyciorg/gitleaks:latest" && docker push "huskyciorg/gitleaks:$gitleaksVersion"
 docker push "huskyciorg/spotbugs:latest" && docker push "huskyciorg/spotbugs:$spotbugsVersion"
 docker push "huskyciorg/tfsec:latest" && docker push "huskyciorg/tfsec:$tfsecVersion"
+docker push "huskyciorg/trivy:latest" && docker push "huskyciorg/trivy:$trivyVersion"
 docker push "huskyciorg/securitycodescan:latest" && docker push "huskyciorg/securitycodescan:$securitycodescanVersion"
