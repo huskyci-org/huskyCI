@@ -15,7 +15,6 @@ safetyVersion=$(docker run --rm huskyciorg/safety:latest safety --version | awk 
 gitleaksVersion=$(docker run --rm huskyciorg/gitleaks:latest gitleaks --version)
 spotbugsVersion=$(docker run --rm huskyciorg/spotbugs:latest cat /opt/spotbugs/version)
 trivyVersion=$(docker run --rm huskyciorg/trivy:latest trivy --version | awk -F " " '{print $3}')
-tfsecVersion=$(docker run --rm huskyciorg/tfsec:latest ./tfsec -v)
 securitycodescanVersion=$(docker run --rm huskyciorg/securitycodescan:latest security-scan | grep tool | awk -F " " '{print $6}')
 
 echo "bandit: $banditVersion"
@@ -28,6 +27,5 @@ echo "yarnauditVersion: $yarnAuditVersion"
 echo "safetyVersion: $safetyVersion"
 echo "gitleaksVersion: $gitleaksVersion"
 echo "spotbugsVersion: $spotbugsVersion"
-echo "tfsecVersion: $tfsecVersion"
 echo "trivyVersion: $trivyVersion"
 echo "securitycodescanVersion: $securitycodescanVersion"

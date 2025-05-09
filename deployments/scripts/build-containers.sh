@@ -13,6 +13,5 @@ docker buildx build --platform linux/amd64 deployments/dockerfiles/npmaudit/ -t 
 docker buildx build --platform linux/amd64 deployments/dockerfiles/safety/ -t huskyciorg/safety:latest
 docker buildx build --platform linux/amd64 deployments/dockerfiles/gitleaks/ -t huskyciorg/gitleaks:latest
 docker buildx build --platform linux/amd64 deployments/dockerfiles/spotbugs/ -t huskyciorg/spotbugs:latest
-docker buildx build --platform linux/amd64 deployments/dockerfiles/tfsec/ -t huskyciorg/tfsec:latest
 docker buildx build --platform linux/amd64 deployments/dockerfiles/trivy/ -t huskyciorg/trivy:latest
 docker buildx build --platform linux/amd64 deployments/dockerfiles/securitycodescan/ -t huskyciorg/securitycodescan:latest
