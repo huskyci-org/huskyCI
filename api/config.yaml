@@ -151,8 +151,8 @@ gitleaks:
 
 gosec:
   name: gosec
-  image: huskyci/gosec
-  imageTag: v2.3.0
+  image: huskyciorg/gosec
+  imageTag: v2.22.4
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/id_rsa &&
