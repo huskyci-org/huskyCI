@@ -300,8 +300,8 @@ securitycodescan:
 
 spotbugs:
   name: spotbugs
-  image: huskyci/spotbugs
-  imageTag: "4.0.0-beta4"
+  image: huskyciorg/spotbugs
+  imageTag: "4.9.3"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
