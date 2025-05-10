@@ -11,10 +11,9 @@ gosecVersion=$(curl -s https://api.github.com/repos/securego/gosec/releases/late
 npmAuditVersion=$(docker run --rm huskyciorg/npmaudit:latest npm audit --version)
 yarnAuditVersion=$(docker run --rm huskyciorg/yarnaudit:latest yarn audit --version )
 safetyVersion=$(docker run --rm huskyciorg/safety:latest safety --version | awk -F " " '{print $3}')
-gitleaksVersion=$(docker run --rm huskyciorg/gitleaks:latest gitleaks --version)
+gitleaksVersion=$(docker run --rm huskyciorg/gitleaks:latest gitleaks version)
 spotbugsVersion=$(docker run --rm huskyciorg/spotbugs:latest cat /opt/spotbugs/version)
-tfsecVersion=$(docker run --rm huskyciorg/tfsec:latest ./tfsec -v)
-trivyVersion=$(docker run --rm huskyciorg/trivy:latest trivy --version | awk -F " " '{print $3}')
+trivyVersion=$(docker run --rm huskyciorg/trivy:latest --version | awk -F " " '{print $2}')
 securitycodescanVersion=$(docker run --rm huskyciorg/securitycodescan:latest security-scan | grep tool | awk -F " " '{print $6}')
 
 docker tag "huskyciorg/bandit:latest" "huskyciorg/bandit:$banditVersion"
@@ -27,7 +26,6 @@ docker tag "huskyciorg/yarnaudit:latest" "huskyciorg/yarnaudit:$yarnAuditVersion
 docker tag "huskyciorg/safety:latest" "huskyciorg/safety:$safetyVersion"
 docker tag "huskyciorg/gitleaks:latest" "huskyciorg/gitleaks:$gitleaksVersion"
 docker tag "huskyciorg/spotbugs:latest" "huskyciorg/spotbugs:$spotbugsVersion"
-docker tag "huskyciorg/tfsec:latest" "huskyciorg/tfsec:$tfsecVersion"
 docker tag "huskyciorg/trivy:latest" "huskyciorg/trivy:$trivyVersion"
 docker tag "huskyciorg/securitycodescan:latest" "huskyciorg/securitycodescan:$securitycodescanVersion"
 
@@ -41,6 +39,5 @@ docker push "huskyciorg/yarnaudit:latest" && docker push "huskyciorg/yarnaudit:$
 docker push "huskyciorg/safety:latest" && docker push "huskyciorg/safety:$safetyVersion"
 docker push "huskyciorg/gitleaks:latest" && docker push "huskyciorg/gitleaks:$gitleaksVersion"
 docker push "huskyciorg/spotbugs:latest" && docker push "huskyciorg/spotbugs:$spotbugsVersion"
-docker push "huskyciorg/tfsec:latest" && docker push "huskyciorg/tfsec:$tfsecVersion"
 docker push "huskyciorg/trivy:latest" && docker push "huskyciorg/trivy:$trivyVersion"
 docker push "huskyciorg/securitycodescan:latest" && docker push "huskyciorg/securitycodescan:$securitycodescanVersion"
