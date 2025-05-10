@@ -26,8 +26,8 @@ bandit:
 
 brakeman:
   name: brakeman
-  image: huskyci/brakeman
-  imageTag: "4.8.2"
+  image: huskyci-org/brakeman
+  imageTag: "7.0.2"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
