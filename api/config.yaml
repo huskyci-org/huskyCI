@@ -1,7 +1,7 @@
 bandit:
   name: bandit
-  image: huskyci/bandit
-  imageTag: "1.6.2"
+  image: huskyci-org/bandit
+  imageTag: "1.8.3"
   cmd: |+
      mkdir -p ~/.ssh &&
      echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
