@@ -271,7 +271,7 @@ safety:
 
 securitycodescan:
   name: securitycodescan
-  image: huskyci/securitycodescan
+  image: huskyciorg/securitycodescan
   imageTag: "v5.6.7"
   cmd: |+
     mkdir -p ~/.ssh &&
