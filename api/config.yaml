@@ -1,6 +1,6 @@
 bandit:
   name: bandit
-  image: huskyci-org/bandit
+  image: huskyciorg/bandit
   imageTag: "1.8.3"
   cmd: |+
      mkdir -p ~/.ssh &&
@@ -26,7 +26,7 @@ bandit:
 
 brakeman:
   name: brakeman
-  image: huskyci-org/brakeman
+  image: huskyciorg/brakeman
   imageTag: "7.0.2"
   cmd: |+
     mkdir -p ~/.ssh &&
@@ -63,8 +63,8 @@ brakeman:
 
 enry:
   name: enry
-  image: huskyci/enry
-  imageTag: v1.2.0
+  image: huskyciorg/enry
+  imageTag: v1.3.0
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
