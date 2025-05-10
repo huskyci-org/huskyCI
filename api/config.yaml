@@ -187,8 +187,8 @@ gosec:
 
 npmaudit:
   name: npmaudit
-  image: huskyci/npmaudit
-  imageTag: "9.6.6"
+  image: huskyciorg/npmaudit
+  imageTag: "11.3.0"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -225,8 +225,8 @@ npmaudit:
 
 safety:
   name: safety
-  image: huskyci/safety
-  imageTag: "1.9.0"
+  image: huskyciorg/safety
+  imageTag: "3.5.0"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -272,7 +272,7 @@ safety:
 securitycodescan:
   name: securitycodescan
   image: huskyci/securitycodescan
-  imageTag: "v5.6.2"
+  imageTag: "v5.6.7"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
