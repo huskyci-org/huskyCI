@@ -120,8 +120,8 @@ gitauthors:
 
 gitleaks:
   name: gitleaks
-  image: huskyci/gitleaks
-  imageTag: "v.7.6.1"
+  image: huskyciorg/gitleaks
+  imageTag: "v.8.25.1"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
