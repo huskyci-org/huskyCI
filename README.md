@@ -11,6 +11,25 @@
 </p>
 
 ---
+## IMPORTANT ORIENTATIONS FOR THIS FORK
+
+This is a fork from this [original HuskyCI](github.com/globocom/huskyCI) repository. I've had a few problems when trying to make use of Husky so I decided to improve the code in order to be able to utilize it in production-ready critical environments.
+The problems addressed until now were:
+  - Outdated MongoDB package/driver - Solution: [new MongoDB driver utilized](go.mongodb.org/mongo-driver) with support to the most up to date MongoDB versions
+  - Broken Kubernetes Compatibility - Solution: fully functioning [HuskyCI API Server helm chart](https://github.com/huskyci-org/helm-chart-huskyci-api) 
+  - Broken Sonarqube Integration Issue Importing - Solution: Updated [generic exxternal issues importing standard](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/importing-external-issues/generic-issue-import-format/)
+  - Gitlab only integration configuration - Set up a fully functioning [Github Action workflow file]()
+  - Outdated tests - Every test container was updated and a new dockerhub repository was created for each one of them (also a [new organization](https://hub.docker.com/orgs/huskyciorg/repositories) was created)
+
+### Ongoing activities
+  - Fix Sonarqube integration file output of some specific tests (like npmaudit, which has only vulnerabilities based on one file and the filepath of the analysed file comes as a placeholder)
+  - Removing TFSec in favour of [Trivy](https://github.com/aquasecurity/trivy) (TFSec was integrated into Trivy)
+  - Documentation improvement
+
+### Tips
+
+If you're setting a Github and Kubernetes environment, think about using the [Actions Runner Controller](https://github.com/actions/actions-runner-controller/tree/master) in order to have a highly-available testing pipeline.
+
 
 ## Overview
 
