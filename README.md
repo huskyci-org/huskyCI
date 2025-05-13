@@ -30,7 +30,7 @@ The problems addressed until now were:
 
 If you're setting a Github and Kubernetes environment, think about using the [Actions Runner Controller](https://github.com/actions/actions-runner-controller/tree/master) in order to have a highly-available testing pipeline.
 
-
+---
 ## Overview
 
 HuskyCI is an open-source tool designed to orchestrate security tests within CI pipelines, centralizing results into a database for further analysis and metrics. It supports multiple programming languages and integrates with popular static analysis tools to identify vulnerabilities early in the development lifecycle.
