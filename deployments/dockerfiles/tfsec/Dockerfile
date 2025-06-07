@@ -5,4 +5,4 @@ FROM tfsec/tfsec:v0.58
 USER root
 
 RUN apk update && apk upgrade \
-	&& apk add git jq openssh-client curl
+	&& apk add curl git jq openssh-client
