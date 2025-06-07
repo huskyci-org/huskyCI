@@ -4,9 +4,9 @@
 #
 
 # huskyCI client default environment variables
-HUSKYCI_CLIENT_REPO_URL="https://github.com/globocom/huskyCI.git"
-HUSKYCI_CLIENT_REPO_BRANCH="poc-golang-gosec"
-HUSKYCI_CLIENT_API_ADDR="http://localhost:8888"
+HUSKYCI_CLIENT_REPO_URL="git@github.com:huskyci-org/huskyCI.git"
+HUSKYCI_CLIENT_REPO_BRANCH="master"
+HUSKYCI_CLIENT_API_ADDR="huskyci-api.your-domain.com"
 HUSKYCI_CLIENT_API_USE_HTTPS="false"
 
 # Adding default envs vars to run be used by make run-client
