@@ -116,7 +116,6 @@ type JSONOutput struct {
 	JavaScriptResults JavaScriptResults `json:"javascriptresults,omitempty"`
 	RubyResults       RubyResults       `json:"rubyresults,omitempty"`
 	JavaResults       JavaResults       `json:"javaresults,omitempty"`
-	HclResults        HclResults        `json:"hclresults,omitempty"`
 	CSharpResults     CSharpResults     `json:"csharpresults,omitempty"`
 	GenericResults    GenericResults    `json:"genericresults,omitempty"`
 	Summary           Summary           `json:"summary,omitempty"`
@@ -186,7 +185,7 @@ type Summary struct {
 	BrakemanSummary         HuskyCISummary `json:"brakemansummary,omitempty"`
 	SpotBugsSummary         HuskyCISummary `json:"spotbugssummary,omitempty"`
 	GitleaksSummary         HuskyCISummary `json:"gitleakssummary,omitempty"`
-	TFSecSummary            HuskyCISummary `json:"tfsecsummary,omitempty"`
+	TrivySummary            HuskyCISummary `json:"trivysummary,omitempty"`
 	SecurityCodeScanSummary HuskyCISummary `json:"securitycodescansummary,omitempty"`
 	TotalSummary            HuskyCISummary `json:"totalsummary,omitempty"`
 }
