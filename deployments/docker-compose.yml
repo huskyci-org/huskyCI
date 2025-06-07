@@ -33,6 +33,9 @@ services:
         build:
             context: ../
             dockerfile: deployments/dockerfiles/api.Dockerfile
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
         command: ./huskyci-api-bin
         volumes:
             - docker_vol:/var/lib/docker
