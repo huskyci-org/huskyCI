@@ -1,7 +1,7 @@
 bandit:
   name: bandit
-  image: huskyci/bandit
-  imageTag: "1.6.2"
+  image: huskyciorg/bandit
+  imageTag: "1.8.3"
   cmd: |+
      mkdir -p ~/.ssh &&
      echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -26,8 +26,8 @@ bandit:
 
 brakeman:
   name: brakeman
-  image: huskyci/brakeman
-  imageTag: "4.8.2"
+  image: huskyciorg/brakeman
+  imageTag: "7.0.2"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -63,8 +63,8 @@ brakeman:
 
 enry:
   name: enry
-  image: huskyci/enry
-  imageTag: v1.2.0
+  image: huskyciorg/enry
+  imageTag: v1.3.0
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -120,8 +120,8 @@ gitauthors:
 
 gitleaks:
   name: gitleaks
-  image: huskyci/gitleaks
-  imageTag: "v.7.6.1"
+  image: huskyciorg/gitleaks
+  imageTag: "v.8.25.1"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -151,8 +151,8 @@ gitleaks:
 
 gosec:
   name: gosec
-  image: huskyci/gosec
-  imageTag: v2.3.0
+  image: huskyciorg/gosec
+  imageTag: v2.22.4
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/id_rsa &&
@@ -187,8 +187,8 @@ gosec:
 
 npmaudit:
   name: npmaudit
-  image: huskyci/npmaudit
-  imageTag: "9.6.6"
+  image: huskyciorg/npmaudit
+  imageTag: "11.3.0"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -225,8 +225,8 @@ npmaudit:
 
 safety:
   name: safety
-  image: huskyci/safety
-  imageTag: "1.9.0"
+  image: huskyciorg/safety
+  imageTag: "3.5.0"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -271,8 +271,8 @@ safety:
 
 securitycodescan:
   name: securitycodescan
-  image: huskyci/securitycodescan
-  imageTag: "v5.6.2"
+  image: huskyciorg/securitycodescan
+  imageTag: "v5.6.7"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -300,8 +300,8 @@ securitycodescan:
 
 spotbugs:
   name: spotbugs
-  image: huskyci/spotbugs
-  imageTag: "4.0.0-beta4"
+  image: huskyciorg/spotbugs
+  imageTag: "4.9.3"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&

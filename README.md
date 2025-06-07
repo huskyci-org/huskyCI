@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/wiki/huskyci-org/huskyCI/images/huskyCI-logo.png" align="center" height="" />
+  <img src="https://raw.githubusercontent.com/huskyci-org/huskyCI/refs/heads/main/huskyCI-logo.png" align="center" height="" />
   <!-- logo font: Anton -->
 </p>
 
