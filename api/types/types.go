@@ -94,7 +94,6 @@ type HuskyCIResults struct {
 	JavaScriptResults JavaScriptResults `bson:"javascriptresults,omitempty" json:"javascriptresults,omitempty"`
 	RubyResults       RubyResults       `bson:"rubyresults,omitempty" json:"rubyresults,omitempty"`
 	JavaResults       JavaResults       `bson:"javaresults,omitempty" json:"javaresults,omitempty"`
-	HclResults        HclResults        `bson:"hclresults,omitempty" json:"hclresults,omitempty"`
 	CSharpResults     CsharpResults     `bson:"csharpresults,omitempty" json:"csharpresults,omitempty"`
 	GenericResults    GenericResults    `bson:"genericresults,omitempty" json:"genericresults,omitempty"`
 }

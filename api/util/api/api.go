@@ -219,8 +219,8 @@ func checkSecurityTest(securityTestName string, configAPI *apiContext.APIConfig)
 		securityTestConfig = *configAPI.GitleaksSecurityTest
 	case "safety":
 		securityTestConfig = *configAPI.SafetySecurityTest
-	case "tfsec":
-		securityTestConfig = *configAPI.TFSecSecurityTest
+	case "trivy":
+		securityTestConfig = *configAPI.TrivySecurityTest
 	case "securitycodescan":
 		securityTestConfig = *configAPI.SecurityCodeScanSecurityTest
 	default:

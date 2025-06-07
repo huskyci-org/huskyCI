@@ -62,6 +62,7 @@ var _ = Describe("Context", func() {
 					Caller: &fakeCaller,
 				}
 				Expect(config.GetAPIPort()).To(Equal(8888))
+				})
 			})
 		})
 		Context("When ConvertStrToInt returns a valid port", func() {
@@ -434,7 +435,7 @@ var _ = Describe("Context", func() {
 						Default:          fakeCaller.expectedBoolFromConfig,
 						TimeOutInSeconds: fakeCaller.expectedIntFromConfig,
 					},
-					TFSecSecurityTest: &types.SecurityTest{
+					TrivySecurityTest: &types.SecurityTest{
 						Name:             fakeCaller.expectedStringFromConfig,
 						Image:            fakeCaller.expectedStringFromConfig,
 						ImageTag:         fakeCaller.expectedStringFromConfig,
@@ -462,4 +463,3 @@ var _ = Describe("Context", func() {
 			})
 		})
 	})
-})

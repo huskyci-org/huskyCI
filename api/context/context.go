@@ -89,7 +89,7 @@ type APIConfig struct {
 	SpotBugsSecurityTest         *types.SecurityTest
 	GitleaksSecurityTest         *types.SecurityTest
 	SafetySecurityTest           *types.SecurityTest
-	TFSecSecurityTest            *types.SecurityTest
+	TrivySecurityTest            *types.SecurityTest
 	SecurityCodeScanSecurityTest *types.SecurityTest
 	DBInstance                   db.Requests
 	Cache                        *cache.Cache
@@ -136,7 +136,7 @@ func (dF DefaultConfig) SetOnceConfig() {
 			SpotBugsSecurityTest:         dF.getSecurityTestConfig("spotbugs"),
 			GitleaksSecurityTest:         dF.getSecurityTestConfig("gitleaks"),
 			SafetySecurityTest:           dF.getSecurityTestConfig("safety"),
-			TFSecSecurityTest:            dF.getSecurityTestConfig("tfsec"),
+			TrivySecurityTest:            dF.getSecurityTestConfig("trivy"),
 			SecurityCodeScanSecurityTest: dF.getSecurityTestConfig("securitycodescan"),
 			DBInstance:                   dF.GetDB(),
 			Cache:                        dF.GetCache(),

@@ -28,7 +28,7 @@ const npmaudit = "npmaudit"
 const yarnaudit = "yarnaudit"
 const spotbugs = "spotbugs"
 const gitleaks = "gitleaks"
-const tfsec = "tfsec"
+const trivy = "trivy"
 const securitycodescan = "securitycodescan"
 
 // Start runs both generic and language security
@@ -136,6 +136,8 @@ func (results *RunAllInfo) runGenericScans(enryScan SecTestScanInfo) error {
 				results.CommitAuthors = newGenericScan.CommitAuthors.Authors
 			} else if genericTest.Name == "gitleaks" {
 				results.setVulns(newGenericScan)
+			} else if genericTest.Name == "trivy" {
+				results.setVulns(newGenericScan)
 			}
 		}(&genericTests[genericTestIndex])
 	}
@@ -236,8 +238,8 @@ func (results *RunAllInfo) setVulns(securityTestScan SecTestScanInfo) {
 			results.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.HighVulns = append(results.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.HighVulns, highVuln)
 		case gitleaks:
 			results.HuskyCIResults.GenericResults.HuskyCIGitleaksOutput.HighVulns = append(results.HuskyCIResults.GenericResults.HuskyCIGitleaksOutput.HighVulns, highVuln)
-		case tfsec:
-			results.HuskyCIResults.HclResults.HuskyCITFSecOutput.HighVulns = append(results.HuskyCIResults.HclResults.HuskyCITFSecOutput.HighVulns, highVuln)
+		case trivy:
+			results.HuskyCIResults.GenericResults.HuskyCITrivyOutput.HighVulns = append(results.HuskyCIResults.GenericResults.HuskyCITrivyOutput.HighVulns, highVuln)
 		case securitycodescan:
 			results.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.HighVulns = append(results.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.HighVulns, highVuln)
 		}
@@ -261,8 +263,8 @@ func (results *RunAllInfo) setVulns(securityTestScan SecTestScanInfo) {
 			results.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.MediumVulns = append(results.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.MediumVulns, mediumVuln)
 		case gitleaks:
 			results.HuskyCIResults.GenericResults.HuskyCIGitleaksOutput.MediumVulns = append(results.HuskyCIResults.GenericResults.HuskyCIGitleaksOutput.MediumVulns, mediumVuln)
-		case tfsec:
-			results.HuskyCIResults.HclResults.HuskyCITFSecOutput.MediumVulns = append(results.HuskyCIResults.HclResults.HuskyCITFSecOutput.MediumVulns, mediumVuln)
+		case trivy:
+			results.HuskyCIResults.GenericResults.HuskyCITrivyOutput.MediumVulns = append(results.HuskyCIResults.GenericResults.HuskyCITrivyOutput.MediumVulns, mediumVuln)
 		case securitycodescan:
 			results.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.MediumVulns = append(results.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.MediumVulns, mediumVuln)
 		}
@@ -286,8 +288,8 @@ func (results *RunAllInfo) setVulns(securityTestScan SecTestScanInfo) {
 			results.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.LowVulns = append(results.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.LowVulns, lowVuln)
 		case gitleaks:
 			results.HuskyCIResults.GenericResults.HuskyCIGitleaksOutput.LowVulns = append(results.HuskyCIResults.GenericResults.HuskyCIGitleaksOutput.LowVulns, lowVuln)
-		case tfsec:
-			results.HuskyCIResults.HclResults.HuskyCITFSecOutput.LowVulns = append(results.HuskyCIResults.HclResults.HuskyCITFSecOutput.LowVulns, lowVuln)
+		case trivy:
+			results.HuskyCIResults.GenericResults.HuskyCITrivyOutput.LowVulns = append(results.HuskyCIResults.GenericResults.HuskyCITrivyOutput.LowVulns, lowVuln)
 		case securitycodescan:
 			results.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.LowVulns = append(results.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.LowVulns, lowVuln)
 		}
@@ -311,8 +313,8 @@ func (results *RunAllInfo) setVulns(securityTestScan SecTestScanInfo) {
 			results.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.NoSecVulns = append(results.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.NoSecVulns, noSec)
 		case gitleaks:
 			results.HuskyCIResults.GenericResults.HuskyCIGitleaksOutput.NoSecVulns = append(results.HuskyCIResults.GenericResults.HuskyCIGitleaksOutput.NoSecVulns, noSec)
-		case tfsec:
-			results.HuskyCIResults.HclResults.HuskyCITFSecOutput.NoSecVulns = append(results.HuskyCIResults.HclResults.HuskyCITFSecOutput.NoSecVulns, noSec)
+		case trivy:
+			results.HuskyCIResults.GenericResults.HuskyCITrivyOutput.NoSecVulns = append(results.HuskyCIResults.GenericResults.HuskyCITrivyOutput.NoSecVulns, noSec)
 		case securitycodescan:
 			results.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.NoSecVulns = append(results.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.NoSecVulns, noSec)
 		}
