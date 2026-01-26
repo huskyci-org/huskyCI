@@ -21,11 +21,10 @@ func main() {
 	setJSONOutputFlag()
 
 	// step 0: check and set huskyci-client configuration
-	if err := config.CheckEnvVars(); err != nil {
+	if err := initializeConfig(); err != nil {
 		printErrorIfNotJSON("[HUSKYCI][ERROR] Check environment variables:", err)
 		os.Exit(1)
 	}
-	config.SetConfigs()
 
 	// step 1: start analysis and get its RID.
 	if !types.IsJSONoutput {
@@ -141,4 +140,12 @@ func printErrorIfNotJSON(message string, err error) {
 	if !types.IsJSONoutput {
 		fmt.Println(message, err)
 	}
+}
+
+func initializeConfig() error {
+	if err := config.CheckEnvVars(); err != nil {
+		return err
+	}
+	config.SetConfigs()
+	return nil
 }
