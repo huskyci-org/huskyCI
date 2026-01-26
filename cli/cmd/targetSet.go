@@ -9,11 +9,18 @@ import (
 
 // targetSetCmd represents the targetSet command
 var targetSetCmd = &cobra.Command{
-	Use:   "target-set",
-	Short: "Change current target (huskyci api)",
-	Long: `
-Change current target (huskyci api).
-	`,
+	Use:   "target-set [name]",
+	Short: "Set a target as the current active target",
+	Long: `Set a target as the current active target for huskyCI operations.
+
+This will make the specified target the default one used for all huskyCI commands.
+
+Examples:
+  # Set 'production' as the current target
+  huskyci target-set production
+
+  # Set 'staging' as the current target
+  huskyci target-set staging`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
@@ -35,15 +42,15 @@ Change current target (huskyci api).
 			}
 		}
 		if notUsed {
-			return fmt.Errorf("Client error, target does not exist: %s", args[0])
+			return fmt.Errorf("target '%s' does not exist\n\nTip: Use 'huskyci target-list' to see available targets, or 'huskyci target-add' to add a new one", args[0])
 		}
 
 		// save config (only if target is found)
 		err := viper.WriteConfig()
 		if err != nil {
-			return fmt.Errorf("Client error saving config with current target: (%s)", err.Error())
+			return fmt.Errorf("error saving configuration: %w\n\nTip: Check if you have write permissions to the config file", err)
 		}
-		fmt.Printf("New target is %s -> %s\n", args[0], endpoint)
+		fmt.Printf("✓ Successfully set '%s' (%s) as the current target\n", args[0], endpoint)
 		return nil
 	},
 }

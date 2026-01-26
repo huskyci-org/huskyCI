@@ -11,15 +11,32 @@ import (
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "Run a huskyCI analysis",
+	Use:   "run [path]",
+	Short: "Run a security analysis on a local directory",
+	Long: `Run a security analysis on a local directory or file path.
+
+This command will:
+  1. Scan the directory for supported programming languages
+  2. Compress the code
+  3. Send it to the huskyCI API for analysis
+  4. Monitor the analysis progress
+  5. Display the results
+
+Examples:
+  # Analyze current directory
+  huskyci run .
+
+  # Analyze a specific directory
+  huskyci run ./my-project
+
+  # Analyze a specific subdirectory
+  huskyci run ./src/main`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
-			errorcli.Handle(errors.New("path is missing"))
+			return errors.New("path argument is required\n\nExample: huskyci run ./my-project")
 		}
 		return nil
 	},
-	// Long:  `Run a security analysis using huskyCI backend.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		pathReceived := args[0]
