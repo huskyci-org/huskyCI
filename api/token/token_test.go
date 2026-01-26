@@ -209,7 +209,7 @@ var _ = Describe("Token", func() {
 			Expect(err).To(Equal(fakeHash.expectedDecodeSaltError))
 		})
 	})
-	
+
 	// Temporarily removed
 	/* 	Context("When GetValidHashFunction returns a false boolean", func() {
 		It("Should return the expected error", func() {
