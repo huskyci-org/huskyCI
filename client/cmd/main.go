@@ -27,17 +27,10 @@ func main() {
 	}
 
 	// step 1: start analysis and get its RID.
-	if !types.IsJSONoutput {
-		s := fmt.Sprintf("[HUSKYCI][*] %s -> %s", config.RepositoryBranch, config.RepositoryURL)
-		fmt.Println(s)
-	}
-	RID, err := analysis.StartAnalysis()
+	RID, err := startAnalysis()
 	if err != nil {
 		fmt.Println("[HUSKYCI][ERROR] Sending request to huskyCI:", err)
 		os.Exit(1)
-	}
-	if !types.IsJSONoutput {
-		fmt.Println("[HUSKYCI][*] huskyCI analysis started! RID:", RID)
 	}
 
 	// step 2.1: keep querying huskyCI API to check if a given analysis has already finished.
@@ -148,4 +141,22 @@ func initializeConfig() error {
 	}
 	config.SetConfigs()
 	return nil
+}
+
+func startAnalysis() (string, error) {
+	if !types.IsJSONoutput {
+		s := fmt.Sprintf("[HUSKYCI][*] %s -> %s", config.RepositoryBranch, config.RepositoryURL)
+		fmt.Println(s)
+	}
+
+	RID, err := analysis.StartAnalysis()
+	if err != nil {
+		return "", err
+	}
+
+	if !types.IsJSONoutput {
+		fmt.Println("[HUSKYCI][*] huskyCI analysis started! RID:", RID)
+	}
+
+	return RID, nil
 }
