@@ -27,6 +27,7 @@ type Kubernetes struct {
 const logActionNew = "NewKubernetes"
 const logInfoAPI = "KUBERNETES"
 
+// NewKubernetes creates a new Kubernetes client instance.
 func NewKubernetes() (*Kubernetes, error) {
 	configAPI, err := apiContext.DefaultConf.GetAPIConfig()
 	if err != nil {
@@ -57,6 +58,7 @@ func NewKubernetes() (*Kubernetes, error) {
 
 }
 
+// CreatePod creates a new Kubernetes pod with the specified image, command, and configuration.
 func (k Kubernetes) CreatePod(image, cmd, podName, securityTestName string) (string, error) {
 
 	ctx := goContext.Background()
@@ -120,6 +122,7 @@ func (k Kubernetes) CreatePod(image, cmd, podName, securityTestName string) (str
 	return string(pod.UID), nil
 }
 
+// WaitPod waits for a pod to be scheduled and complete execution, with configurable timeouts.
 func (k Kubernetes) WaitPod(name string, podSchedulingTimeoutInSeconds, testTimeOutInSeconds int) (string, error) {
 
 	ctx := goContext.Background()
@@ -163,7 +166,7 @@ schedulingLoop:
 			return "", err
 		}
 
-		return "", errors.New(fmt.Sprintf("Timed-out waiting for pod scheduling: %s", name))
+		return "", fmt.Errorf("timed-out waiting for pod scheduling: %s", name)
 	}
 
 	timeoutResult := func(i int64) *int64 { return &i }(int64(testTimeOutInSeconds))
@@ -198,9 +201,10 @@ schedulingLoop:
 		return "", err
 	}
 
-	return "", errors.New(fmt.Sprintf("Timed-out waiting for pod to finish: %s", name))
+	return "", fmt.Errorf("timed-out waiting for pod to finish: %s", name)
 }
 
+// ReadOutput reads the logs from a Kubernetes pod.
 func (k Kubernetes) ReadOutput(name string) (string, error) {
 	ctx := goContext.Background()
 
@@ -227,6 +231,7 @@ func (k Kubernetes) ReadOutput(name string) (string, error) {
 	return string(result), nil
 }
 
+// RemovePod deletes a Kubernetes pod by name.
 func (k Kubernetes) RemovePod(name string) error {
 	ctx := goContext.Background()
 
