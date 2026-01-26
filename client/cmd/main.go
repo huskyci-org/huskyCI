@@ -42,19 +42,7 @@ func main() {
 	}
 
 	// step 2.2: prepare the list of securityTests that ran in the analysis.
-	var passedList []string
-	var failedList []string
-	var errorList []string
-	for _, container := range huskyAnalysis.Containers {
-		securityTestFullName := fmt.Sprintf("%s:%s", container.SecurityTest.Image, container.SecurityTest.ImageTag)
-		if container.CResult == "passed" && container.SecurityTest.Name != "gitauthors" {
-			passedList = append(passedList, securityTestFullName)
-		} else if container.CResult == "failed" {
-			failedList = append(failedList, securityTestFullName)
-		} else if container.CResult == "error" {
-			failedList = append(errorList, securityTestFullName)
-		}
-	}
+	passedList, failedList, errorList := categorizeSecurityTests(huskyAnalysis)
 
 	// step 3: print output based on os.Args(1) parameter received
 	types.IsJSONoutput = false
@@ -159,4 +147,24 @@ func startAnalysis() (string, error) {
 	}
 
 	return RID, nil
+}
+
+func categorizeSecurityTests(huskyAnalysis types.Analysis) ([]string, []string, []string) {
+	var passedList []string
+	var failedList []string
+	var errorList []string
+
+	for _, container := range huskyAnalysis.Containers {
+		securityTestFullName := fmt.Sprintf("%s:%s", container.SecurityTest.Image, container.SecurityTest.ImageTag)
+		switch {
+		case container.CResult == "passed" && container.SecurityTest.Name != "gitauthors":
+			passedList = append(passedList, securityTestFullName)
+		case container.CResult == "failed":
+			failedList = append(failedList, securityTestFullName)
+		case container.CResult == "error":
+			errorList = append(errorList, securityTestFullName)
+		}
+	}
+
+	return passedList, failedList, errorList
 }
