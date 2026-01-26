@@ -21,9 +21,9 @@ COLOR_RED = \033[31m
 
 PROJECT := huskyCI
 
-TAG := $(shell git describe --tags --abbrev=0)
+TAG := $(shell git describe --tags --abbrev=0 2>/dev/null || git describe --always --abbrev=0)
 DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-COMMIT := $(shell git rev-parse $(TAG))
+COMMIT := $(shell git rev-parse HEAD)
 LDFLAGS := '-X "main.version=$(TAG)" -X "main.commit=$(COMMIT)" -X "main.date=$(DATE)"'
 
 ## Builds all project binaries
