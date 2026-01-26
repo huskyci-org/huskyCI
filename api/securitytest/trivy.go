@@ -7,10 +7,12 @@ import (
 	"github.com/huskyci-org/huskyCI/api/types"
 )
 
+// TrivyOutput represents the output structure from a Trivy security scan.
 type TrivyOutput struct {
 	Results []TrivyResult `json:"Results"`
 }
 
+// TrivyResult represents a single scan result from Trivy, containing target information and vulnerabilities.
 type TrivyResult struct {
 	Target          string `json:"Target"`
 	Vulnerabilities []struct {
