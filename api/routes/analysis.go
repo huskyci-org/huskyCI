@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -53,17 +54,30 @@ func GetAnalysis(c echo.Context) error {
 	if err != nil {
 		if err == mongo.ErrNoDocuments || err.Error() == "No data found" {
 			log.Warning(logActionGetAnalysis, logInfoAnalysis, 106, RID)
-			reply := map[string]interface{}{"success": false, "error": "user not found"}
+			reply := map[string]interface{}{
+				"success": false,
+				"error":   "analysis not found",
+				"message": fmt.Sprintf("No analysis found with RID: %s. Please verify the RID and try again.", RID),
+				"rid":     RID,
+			}
 			return c.JSON(http.StatusNotFound, reply)
 		}
 		log.Error(logActionGetAnalysis, logInfoAnalysis, 1020, err)
-		reply := map[string]interface{}{"success": false, "error": "internal error"}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "internal server error",
+			"message": "An unexpected error occurred while retrieving the analysis. Please try again later or contact support if the issue persists.",
+		}
 		return c.JSON(http.StatusInternalServerError, reply)
 	}
 
 	if !tokenValidator.HasAuthorization(attemptToken, analysisResult.URL) {
 		log.Error(logActionGetAnalysis, logInfoAnalysis, 1027, RID)
-		reply := map[string]interface{}{"success": false, "error": "permission denied"}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "permission denied",
+			"message": "The provided token does not have permission to access this analysis. Please verify your token has access to the repository.",
+		}
 		return c.JSON(http.StatusUnauthorized, reply)
 	}
 
@@ -87,12 +101,20 @@ func ReceiveRequest(c echo.Context) error {
 	err := c.Bind(&repository)
 	if err != nil {
 		log.Error(logActionReceiveRequest, logInfoAnalysis, 1015, err)
-		reply := map[string]interface{}{"success": false, "error": "invalid repository JSON"}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "invalid request format",
+			"message": "The request body must be valid JSON with 'repositoryURL' and 'repositoryBranch' fields. Example: {\"repositoryURL\": \"https://github.com/user/repo.git\", \"repositoryBranch\": \"main\"}",
+		}
 		return c.JSON(http.StatusBadRequest, reply)
 	}
 	if !tokenValidator.HasAuthorization(attemptToken, repository.URL) {
 		log.Error("ReceivedRequest", logInfoAnalysis, 1027, RID)
-		reply := map[string]interface{}{"success": false, "error": "permission denied"}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "permission denied",
+			"message": fmt.Sprintf("The provided token does not have permission to analyze repository: %s. Please verify your token has access to this repository.", repository.URL),
+		}
 		return c.JSON(http.StatusUnauthorized, reply)
 	}
 	// step-01: Check malicious inputs
@@ -112,13 +134,21 @@ func ReceiveRequest(c echo.Context) error {
 			err = apiContext.APIConfiguration.DBInstance.InsertDBRepository(repository)
 			if err != nil {
 				log.Error(logActionReceiveRequest, logInfoAnalysis, 1010, err)
-				reply := map[string]interface{}{"success": false, "error": "internal error"}
+				reply := map[string]interface{}{
+					"success": false,
+					"error":   "internal server error",
+					"message": "Failed to register the repository. Please try again later or contact support if the issue persists.",
+				}
 				return c.JSON(http.StatusInternalServerError, reply)
 			}
 		} else {
 			// step-02-o2: another error searching for repositoryQuery
 			log.Error(logActionReceiveRequest, logInfoAnalysis, 1013, err)
-			reply := map[string]interface{}{"success": false, "error": "internal error"}
+			reply := map[string]interface{}{
+				"success": false,
+				"error":   "internal server error",
+				"message": "An unexpected error occurred while processing your request. Please try again later.",
+			}
 			return c.JSON(http.StatusInternalServerError, reply)
 		}
 	} else { // err == nil
@@ -131,14 +161,23 @@ func ReceiveRequest(c echo.Context) error {
 			} else {
 				// step-03-err: another error searching for analysisQuery
 				log.Error(logActionReceiveRequest, logInfoAnalysis, 1009, err)
-				reply := map[string]interface{}{"success": false, "error": "internal error"}
+				reply := map[string]interface{}{
+					"success": false,
+					"error":   "internal server error",
+					"message": "An unexpected error occurred while checking for existing analyses. Please try again later.",
+				}
 				return c.JSON(http.StatusInternalServerError, reply)
 			}
 		} else { // err == nil
 			// step 03-a: Ops, this analysis is already running!
 			if analysisResult.Status == "running" {
 				log.Warning(logActionReceiveRequest, logInfoAnalysis, 104, analysisResult.URL)
-				reply := map[string]interface{}{"success": false, "error": "an analysis is already in place for this URL and branch"}
+				reply := map[string]interface{}{
+					"success": false,
+					"error":   "analysis already running",
+					"message": fmt.Sprintf("An analysis for repository '%s' on branch '%s' is already in progress. Please wait for it to complete or use the existing analysis RID: %s", repository.URL, repository.Branch, analysisResult.RID),
+					"rid":     analysisResult.RID,
+				}
 				return c.JSON(http.StatusConflict, reply)
 			}
 		}
@@ -147,6 +186,11 @@ func ReceiveRequest(c echo.Context) error {
 	// step 04: lets start this analysis!
 	log.Info(logActionReceiveRequest, logInfoAnalysis, 16, repository.Branch, repository.URL)
 	go analysis.StartAnalysis(RID, repository)
-	reply := map[string]interface{}{"success": true, "error": ""}
+	reply := map[string]interface{}{
+		"success": true,
+		"error":   "",
+		"message": fmt.Sprintf("Analysis started successfully for repository '%s' on branch '%s'", repository.URL, repository.Branch),
+		"rid":     RID,
+	}
 	return c.JSON(http.StatusCreated, reply)
 }
