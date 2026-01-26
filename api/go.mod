@@ -1,6 +1,6 @@
 module github.com/huskyci-org/huskyCI/api
 
-go 1.23
+go 1.24
 
 require (
 	github.com/docker/docker v25.0.13+incompatible
