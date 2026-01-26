@@ -45,6 +45,15 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	// Skip initialization messages when generating completion scripts
+	isCompletion := false
+	for _, arg := range os.Args {
+		if arg == "completion" {
+			isCompletion = true
+			break
+		}
+	}
+	
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -52,12 +61,12 @@ func initConfig() {
 		// Find home directory.
 		home, err := os.UserHomeDir()
 		if err != nil {
-			fmt.Printf("Client error reading home folder: %s (%s)\n", home, err.Error())
+			fmt.Fprintf(os.Stderr, "Client error reading home folder: %s (%s)\n", home, err.Error())
 			os.Exit(1)
 		}
 
 		// check if .huskyci folder exists and creates if it not exists
-		path, err := config.CheckAndCreateConfigFolder(home, true)
+		path, err := config.CheckAndCreateConfigFolder(home, !isCompletion)
 		if err != nil {
 			os.Exit(1)
 		}
@@ -72,7 +81,7 @@ func initConfig() {
 		// test if config file exists and creates if it not exists
 		err = viper.ReadInConfig()
 		if err != nil {
-			_, err = config.CreateConfigFile(path, true)
+			_, err = config.CreateConfigFile(path, !isCompletion)
 			if err != nil {
 				os.Exit(1)
 			}
@@ -85,8 +94,10 @@ func initConfig() {
 	// If a config file is found, read it in.
 	err := viper.ReadInConfig()
 	if err != nil {
-		fmt.Printf("Client error reading config file (%s)\n", err.Error())
+		fmt.Fprintf(os.Stderr, "Client error reading config file (%s)\n", err.Error())
 		os.Exit(1)
 	}
-	fmt.Printf("Using config file: %s\n\n", viper.ConfigFileUsed())
+	if !isCompletion {
+		fmt.Fprintf(os.Stderr, "Using config file: %s\n\n", viper.ConfigFileUsed())
+	}
 }
