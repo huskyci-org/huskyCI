@@ -15,36 +15,31 @@ import (
 	"github.com/huskyci-org/huskyCI/client/types"
 )
 
+const (
+	huskyCIPrefix = "[HUSKYCI][*]"
+	msgNoBlockingVulns = "[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:"
+	msgSecurityTestsFailed = "[HUSKYCI][*] The following securityTests failed to run:"
+	msgNoIssuesFound = "[HUSKYCI][*] No issues were found."
+	msgLowInfoIssuesFound = "[HUSKYCI][*] However, some LOW/INFO issues were found..."
+	msgHighMediumIssuesFound = "[HUSKYCI][*] Some HIGH/MEDIUM issues were found in these securityTests:"
+)
+
 func main() {
 
 	types.FoundVuln = false
-	types.IsJSONoutput = false
-
-	if len(os.Args) > 1 && os.Args[1] == "JSON" {
-		types.IsJSONoutput = true
-	}
+	setJSONOutputFlag()
 
 	// step 0: check and set huskyci-client configuration
-	if err := config.CheckEnvVars(); err != nil {
-		if !types.IsJSONoutput {
-			fmt.Println("[HUSKYCI][ERROR] Check environment variables:", err)
-		}
+	if err := initializeConfig(); err != nil {
+		printErrorIfNotJSON("[HUSKYCI][ERROR] Check environment variables:", err)
 		os.Exit(1)
 	}
-	config.SetConfigs()
 
 	// step 1: start analysis and get its RID.
-	if !types.IsJSONoutput {
-		s := fmt.Sprintf("[HUSKYCI][*] %s -> %s", config.RepositoryBranch, config.RepositoryURL)
-		fmt.Println(s)
-	}
-	RID, err := analysis.StartAnalysis()
+	RID, err := startAnalysis()
 	if err != nil {
 		fmt.Println("[HUSKYCI][ERROR] Sending request to huskyCI:", err)
 		os.Exit(1)
-	}
-	if !types.IsJSONoutput {
-		fmt.Println("[HUSKYCI][*] huskyCI analysis started! RID:", RID)
 	}
 
 	// step 2.1: keep querying huskyCI API to check if a given analysis has already finished.
@@ -56,25 +51,10 @@ func main() {
 	}
 
 	// step 2.2: prepare the list of securityTests that ran in the analysis.
-	var passedList []string
-	var failedList []string
-	var errorList []string
-	for _, container := range huskyAnalysis.Containers {
-		securityTestFullName := fmt.Sprintf("%s:%s", container.SecurityTest.Image, container.SecurityTest.ImageTag)
-		if container.CResult == "passed" && container.SecurityTest.Name != "gitauthors" {
-			passedList = append(passedList, securityTestFullName)
-		} else if container.CResult == "failed" {
-			failedList = append(failedList, securityTestFullName)
-		} else if container.CResult == "error" {
-			failedList = append(errorList, securityTestFullName)
-		}
-	}
+	passedList, failedList, errorList := categorizeSecurityTests(huskyAnalysis)
 
 	// step 3: print output based on os.Args(1) parameter received
-	types.IsJSONoutput = false
-	if len(os.Args) > 1 {
-		types.IsJSONoutput = true
-	}
+	setJSONOutputFlag()
 
 	err = analysis.PrintResults(huskyAnalysis)
 	if err != nil {
@@ -83,58 +63,132 @@ func main() {
 	}
 
 	// step 3.5: integration with SonarQube
-	outputPath := "./huskyCI/"
-	outputFileName := "sonarqube.json"
-
-	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-		os.MkdirAll(outputPath, os.ModePerm)
-	}
-
-	err = sonarqube.GenerateOutputFile(huskyAnalysis, outputPath, outputFileName)
-	if err != nil {
+	if err := generateSonarQubeOutput(huskyAnalysis); err != nil {
 		fmt.Println("[ERROR] Failed to generate SonarQube JSON file:", err)
 		os.Exit(1)
 	}
 
 	// step 4: block developer CI if vulnerabilities were found
-	if !types.FoundVuln && !types.FoundInfo {
-		if !types.IsJSONoutput {
-			if len(errorList) > 0 {
-				fmt.Println("[HUSKYCI][*] The following securityTests failed to run:")
-				fmt.Println("[HUSKYCI][*]", errorList)
-			}
-			fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
-			fmt.Println("[HUSKYCI][*]", passedList)
-			fmt.Println("[HUSKYCI][*] No issues were found.")
-		}
-		os.Exit(0)
+	exitCode := handleVulnerabilityResults(passedList, failedList, errorList)
+	os.Exit(exitCode)
+}
+
+func setJSONOutputFlag() {
+	types.IsJSONoutput = len(os.Args) > 1 && os.Args[1] == "JSON"
+}
+
+func printErrorIfNotJSON(message string, err error) {
+	if !types.IsJSONoutput {
+		fmt.Println(message, err)
+	}
+}
+
+func initializeConfig() error {
+	if err := config.CheckEnvVars(); err != nil {
+		return err
+	}
+	config.SetConfigs()
+	return nil
+}
+
+func startAnalysis() (string, error) {
+	if !types.IsJSONoutput {
+		s := fmt.Sprintf("[HUSKYCI][*] %s -> %s", config.RepositoryBranch, config.RepositoryURL)
+		fmt.Println(s)
 	}
 
-	if !types.FoundVuln && types.FoundInfo {
-		if !types.IsJSONoutput {
-			if len(errorList) > 0 {
-				fmt.Println("[HUSKYCI][*] The following securityTests failed to run:")
-				fmt.Println("[HUSKYCI][*]", errorList)
-			}
-			fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
-			fmt.Println("[HUSKYCI][*]", passedList)
-			fmt.Println("[HUSKYCI][*] However, some LOW/INFO issues were found...")
-		}
-		os.Exit(0)
+	RID, err := analysis.StartAnalysis()
+	if err != nil {
+		return "", err
 	}
 
-	if types.FoundVuln && !types.IsJSONoutput {
-		if len(errorList) > 0 {
-			fmt.Println("[HUSKYCI][*] The following securityTests failed to run:")
-			fmt.Println("[HUSKYCI][*]", errorList)
+	if !types.IsJSONoutput {
+		fmt.Println("[HUSKYCI][*] huskyCI analysis started! RID:", RID)
+	}
+
+	return RID, nil
+}
+
+func categorizeSecurityTests(huskyAnalysis types.Analysis) ([]string, []string, []string) {
+	var passedList []string
+	var failedList []string
+	var errorList []string
+
+	for _, container := range huskyAnalysis.Containers {
+		securityTestFullName := fmt.Sprintf("%s:%s", container.SecurityTest.Image, container.SecurityTest.ImageTag)
+		switch {
+		case container.CResult == "passed" && container.SecurityTest.Name != "gitauthors":
+			passedList = append(passedList, securityTestFullName)
+		case container.CResult == "failed":
+			failedList = append(failedList, securityTestFullName)
+		case container.CResult == "error":
+			errorList = append(errorList, securityTestFullName)
 		}
+	}
+
+	return passedList, failedList, errorList
+}
+
+func generateSonarQubeOutput(huskyAnalysis types.Analysis) error {
+	outputPath := "./huskyCI/"
+	outputFileName := "sonarqube.json"
+
+	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(outputPath, os.ModePerm); err != nil {
+			return fmt.Errorf("failed to create output directory: %w", err)
+		}
+	}
+
+	return sonarqube.GenerateOutputFile(huskyAnalysis, outputPath, outputFileName)
+}
+
+func handleVulnerabilityResults(passedList, failedList, errorList []string) int {
+	switch {
+	case !types.FoundVuln && !types.FoundInfo:
+		printNoVulnerabilitiesFound(passedList, errorList)
+		return 0
+	case !types.FoundVuln && types.FoundInfo:
+		printInfoVulnerabilitiesFound(passedList, errorList)
+		return 0
+	default:
+		printVulnerabilitiesFound(passedList, failedList, errorList)
+		return 190
+	}
+}
+
+func printNoVulnerabilitiesFound(passedList, errorList []string) {
+	if !types.IsJSONoutput {
+		printErrorList(errorList)
+		fmt.Println(msgNoBlockingVulns)
+		fmt.Println(huskyCIPrefix, passedList)
+		fmt.Println(msgNoIssuesFound)
+	}
+}
+
+func printInfoVulnerabilitiesFound(passedList, errorList []string) {
+	if !types.IsJSONoutput {
+		printErrorList(errorList)
+		fmt.Println(msgNoBlockingVulns)
+		fmt.Println(huskyCIPrefix, passedList)
+		fmt.Println(msgLowInfoIssuesFound)
+	}
+}
+
+func printVulnerabilitiesFound(passedList, failedList, errorList []string) {
+	if !types.IsJSONoutput {
+		printErrorList(errorList)
 		if len(passedList) > 0 {
-			fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
-			fmt.Println("[HUSKYCI][*]", passedList)
+			fmt.Println(msgNoBlockingVulns)
+			fmt.Println(huskyCIPrefix, passedList)
 		}
-		fmt.Println("[HUSKYCI][*] Some HIGH/MEDIUM issues were found in these securityTests:")
-		fmt.Println("[HUSKYCI][*]", failedList)
+		fmt.Println(msgHighMediumIssuesFound)
+		fmt.Println(huskyCIPrefix, failedList)
 	}
+}
 
-	os.Exit(190)
+func printErrorList(errorList []string) {
+	if len(errorList) > 0 {
+		fmt.Println(msgSecurityTestsFailed)
+		fmt.Println(huskyCIPrefix, errorList)
+	}
 }
