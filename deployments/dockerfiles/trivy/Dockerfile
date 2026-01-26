@@ -1,6 +1,6 @@
 # Dockerfile used to create "huskyciorg/trivy" image
 # https://hub.docker.com/r/aquasec/trivy
-FROM aquasec/trivy:0.62.1
+FROM aquasec/trivy:0.68.2
 
 USER root
 

@@ -1,13 +1,13 @@
-FROM openjdk:8-jdk-alpine
+FROM eclipse-temurin:17-jdk-alpine
 
 RUN apk update && apk upgrade \
 	&& apk add --no-cache curl tar bash wget unzip openssh-client \
 	&& apk add git
 
-ARG SPOTBUGS_VERSION=4.0.0-beta4
-ARG FINDSECBUGS_VERSION=1.9.0
-ARG MAVEN_VERSION=3.6.2
-ARG GRADLE_VERSION=5.6.2
+ARG SPOTBUGS_VERSION=4.9.8
+ARG FINDSECBUGS_VERSION=1.14.0
+ARG MAVEN_VERSION=3.9.12
+ARG GRADLE_VERSION=9.3.0
 ARG USER_HOME_DIR="/root"
 
 RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
@@ -21,7 +21,7 @@ RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
   && unzip gradle.zip \
   && rm -f gradle.zip \
   && mv gradle-${GRADLE_VERSION} gradle \
-  && wget -nc -O spotbugs.zip http://repo.maven.apache.org/maven2/com/github/spotbugs/spotbugs/${SPOTBUGS_VERSION}/spotbugs-${SPOTBUGS_VERSION}.zip \
+  && wget -nc -O spotbugs.zip https://repo.maven.apache.org/maven2/com/github/spotbugs/spotbugs/${SPOTBUGS_VERSION}/spotbugs-${SPOTBUGS_VERSION}.zip \
   && unzip spotbugs.zip \
   && rm -f spotbugs.zip \
   && mv spotbugs-${SPOTBUGS_VERSION} spotbugs \
