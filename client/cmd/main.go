@@ -45,10 +45,7 @@ func main() {
 	passedList, failedList, errorList := categorizeSecurityTests(huskyAnalysis)
 
 	// step 3: print output based on os.Args(1) parameter received
-	types.IsJSONoutput = false
-	if len(os.Args) > 1 {
-		types.IsJSONoutput = true
-	}
+	setJSONOutputFlag()
 
 	err = analysis.PrintResults(huskyAnalysis)
 	if err != nil {
@@ -57,15 +54,7 @@ func main() {
 	}
 
 	// step 3.5: integration with SonarQube
-	outputPath := "./huskyCI/"
-	outputFileName := "sonarqube.json"
-
-	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-		os.MkdirAll(outputPath, os.ModePerm)
-	}
-
-	err = sonarqube.GenerateOutputFile(huskyAnalysis, outputPath, outputFileName)
-	if err != nil {
+	if err := generateSonarQubeOutput(huskyAnalysis); err != nil {
 		fmt.Println("[ERROR] Failed to generate SonarQube JSON file:", err)
 		os.Exit(1)
 	}
@@ -167,4 +156,17 @@ func categorizeSecurityTests(huskyAnalysis types.Analysis) ([]string, []string, 
 	}
 
 	return passedList, failedList, errorList
+}
+
+func generateSonarQubeOutput(huskyAnalysis types.Analysis) error {
+	outputPath := "./huskyCI/"
+	outputFileName := "sonarqube.json"
+
+	if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(outputPath, os.ModePerm); err != nil {
+			return fmt.Errorf("failed to create output directory: %w", err)
+		}
+	}
+
+	return sonarqube.GenerateOutputFile(huskyAnalysis, outputPath, outputFileName)
 }
