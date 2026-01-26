@@ -1,6 +1,6 @@
 # Dockerfile used to create "husyci/tfsec" image
 # https://hub.docker.com/r/huskyci/tfsec/
-FROM tfsec/tfsec:v1.28.14
+FROM ghcr.io/aquasecurity/tfsec:v1.28.14
 
 USER root
 
