@@ -7,7 +7,7 @@ import (
 	"github.com/huskyci-org/huskyCI/api/log"
 	"github.com/huskyci-org/huskyCI/api/token"
 	"github.com/huskyci-org/huskyCI/api/types"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 )
 
 var (

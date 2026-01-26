@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 )
 
 // ValidateUser is called by the echo's middleware for
