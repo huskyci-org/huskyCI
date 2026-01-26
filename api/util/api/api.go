@@ -185,6 +185,7 @@ func (cH *CheckUtils) checkDefaultUser(configAPI *apiContext.APIConfig) error {
 	return nil
 }
 
+// FormatDockerHostAddress formats the Docker host address based on the current host index.
 func FormatDockerHostAddress(dockerHost types.DockerAPIAddresses, configAPI *apiContext.APIConfig) (string, error) {
 	if len(dockerHost.HostList) == 0 {
 		return "", errors.New("Docker host list is empty")
