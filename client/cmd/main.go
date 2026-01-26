@@ -18,17 +18,11 @@ import (
 func main() {
 
 	types.FoundVuln = false
-	types.IsJSONoutput = false
-
-	if len(os.Args) > 1 && os.Args[1] == "JSON" {
-		types.IsJSONoutput = true
-	}
+	setJSONOutputFlag()
 
 	// step 0: check and set huskyci-client configuration
 	if err := config.CheckEnvVars(); err != nil {
-		if !types.IsJSONoutput {
-			fmt.Println("[HUSKYCI][ERROR] Check environment variables:", err)
-		}
+		printErrorIfNotJSON("[HUSKYCI][ERROR] Check environment variables:", err)
 		os.Exit(1)
 	}
 	config.SetConfigs()
@@ -137,4 +131,14 @@ func main() {
 	}
 
 	os.Exit(190)
+}
+
+func setJSONOutputFlag() {
+	types.IsJSONoutput = len(os.Args) > 1 && os.Args[1] == "JSON"
+}
+
+func printErrorIfNotJSON(message string, err error) {
+	if !types.IsJSONoutput {
+		fmt.Println(message, err)
+	}
 }
