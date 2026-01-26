@@ -20,6 +20,7 @@ var HuskyToken string
 
 // LanguageExclusions stores a map of languages to exclude from analysis.
 var LanguageExclusions map[string]bool
+
 // HuskyUseTLS stores if huskyCI is to use an HTTPS connection.
 var HuskyUseTLS bool
 
