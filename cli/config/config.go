@@ -39,7 +39,7 @@ func GetCurrentTarget() (*types.Target, error) {
 
 				// check token storage
 				if target["token-storage"] == nil {
-					fmt.Printf("Token storage is not set. You can set it using the -s flag at 'huskyci login' command\n")
+					fmt.Fprintf(os.Stderr, "Token storage is not set. You can set it using the -s flag at 'huskyci login' command\n")
 					currentTarget.TokenStorage = ""
 				} else {
 					currentTarget.TokenStorage = target["token-storage"].(string)
@@ -61,13 +61,13 @@ func CheckAndCreateConfigFolder(home string, debug bool) (string, error) {
 		err := os.Mkdir(path, 0750)
 		if err != nil {
 			if debug {
-				fmt.Printf("Client error creating config folder: %s (%s)\n", path, err.Error())
+				fmt.Fprintf(os.Stderr, "Client error creating config folder: %s (%s)\n", path, err.Error())
 			}
 			return "", err
 		}
 	}
 	if debug {
-		fmt.Printf("Client created config folder: %s\n", path)
+		fmt.Fprintf(os.Stderr, "Client created config folder: %s\n", path)
 	}
 	return path, nil
 }
@@ -78,19 +78,19 @@ func CreateConfigFile(path string, debug bool) (string, error) {
 	file, err := os.Create(configFile)
 	if err != nil {
 		if debug {
-			fmt.Printf("Client error creating config file: %s (%s)\n", configFile, err.Error())
+			fmt.Fprintf(os.Stderr, "Client error creating config file: %s (%s)\n", configFile, err.Error())
 		}
 		return "", err
 	}
 	err = file.Close()
 	if err != nil {
 		if debug {
-			fmt.Printf("Client error closing config file: %s (%s)\n", configFile, err.Error())
+			fmt.Fprintf(os.Stderr, "Client error closing config file: %s (%s)\n", configFile, err.Error())
 		}
 		return "", err
 	}
 	if debug {
-		fmt.Printf("Client created new config file: %s\n", configFile)
+		fmt.Fprintf(os.Stderr, "Client created new config file: %s\n", configFile)
 	}
 	return configFile, nil
 }
