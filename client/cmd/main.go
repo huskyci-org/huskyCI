@@ -15,6 +15,15 @@ import (
 	"github.com/huskyci-org/huskyCI/client/types"
 )
 
+const (
+	huskyCIPrefix = "[HUSKYCI][*]"
+	msgNoBlockingVulns = "[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:"
+	msgSecurityTestsFailed = "[HUSKYCI][*] The following securityTests failed to run:"
+	msgNoIssuesFound = "[HUSKYCI][*] No issues were found."
+	msgLowInfoIssuesFound = "[HUSKYCI][*] However, some LOW/INFO issues were found..."
+	msgHighMediumIssuesFound = "[HUSKYCI][*] Some HIGH/MEDIUM issues were found in these securityTests:"
+)
+
 func main() {
 
 	types.FoundVuln = false
@@ -150,18 +159,18 @@ func handleVulnerabilityResults(passedList, failedList, errorList []string) int 
 func printNoVulnerabilitiesFound(passedList, errorList []string) {
 	if !types.IsJSONoutput {
 		printErrorList(errorList)
-		fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
-		fmt.Println("[HUSKYCI][*]", passedList)
-		fmt.Println("[HUSKYCI][*] No issues were found.")
+		fmt.Println(msgNoBlockingVulns)
+		fmt.Println(huskyCIPrefix, passedList)
+		fmt.Println(msgNoIssuesFound)
 	}
 }
 
 func printInfoVulnerabilitiesFound(passedList, errorList []string) {
 	if !types.IsJSONoutput {
 		printErrorList(errorList)
-		fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
-		fmt.Println("[HUSKYCI][*]", passedList)
-		fmt.Println("[HUSKYCI][*] However, some LOW/INFO issues were found...")
+		fmt.Println(msgNoBlockingVulns)
+		fmt.Println(huskyCIPrefix, passedList)
+		fmt.Println(msgLowInfoIssuesFound)
 	}
 }
 
@@ -169,17 +178,17 @@ func printVulnerabilitiesFound(passedList, failedList, errorList []string) {
 	if !types.IsJSONoutput {
 		printErrorList(errorList)
 		if len(passedList) > 0 {
-			fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
-			fmt.Println("[HUSKYCI][*]", passedList)
+			fmt.Println(msgNoBlockingVulns)
+			fmt.Println(huskyCIPrefix, passedList)
 		}
-		fmt.Println("[HUSKYCI][*] Some HIGH/MEDIUM issues were found in these securityTests:")
-		fmt.Println("[HUSKYCI][*]", failedList)
+		fmt.Println(msgHighMediumIssuesFound)
+		fmt.Println(huskyCIPrefix, failedList)
 	}
 }
 
 func printErrorList(errorList []string) {
 	if len(errorList) > 0 {
-		fmt.Println("[HUSKYCI][*] The following securityTests failed to run:")
-		fmt.Println("[HUSKYCI][*]", errorList)
+		fmt.Println(msgSecurityTestsFailed)
+		fmt.Println(huskyCIPrefix, errorList)
 	}
 }
