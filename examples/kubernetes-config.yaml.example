@@ -1,0 +1,37 @@
+# Kubernetes Configuration File Example
+# This is an example Kubernetes kubeconfig file for HuskyCI API server.
+# Copy this file and customize it with your Kubernetes cluster details.
+#
+# This configuration is used when HuskyCI API is deployed in Kubernetes mode.
+# Replace the placeholder values with your actual cluster configuration.
+
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: <KUBERNETES_CERT_AUTHORITY_DATA>
+    server: <KUBERNETES_SERVER_HOST>
+  name: <CLUSTER_NAME>
+contexts:
+- context:
+    cluster: <CLUSTER_NAME>
+    user: <CLUSTER_USER>
+  name: <CONTEXT_NAME>
+current-context: <CONTEXT_NAME>
+kind: Config
+preferences: {}
+users:
+- name: <CLUSTER_USER>
+  user:
+    client-certificate-data: <CLIENT_CERTIFICATE_DATA>
+    client-key-data: <CLIENT_KEY_DATA>
+
+# Configuration Notes:
+# - Replace <KUBERNETES_CERT_AUTHORITY_DATA> with your cluster's CA certificate (base64 encoded)
+# - Replace <KUBERNETES_SERVER_HOST> with your Kubernetes API server URL (e.g., https://k8s.example.com:6443)
+# - Replace <CLUSTER_NAME> with your cluster name
+# - Replace <CLUSTER_USER> with your Kubernetes user/service account name
+# - Replace <CONTEXT_NAME> with your context name
+# - Replace <CLIENT_CERTIFICATE_DATA> with your client certificate (base64 encoded)
+# - Replace <CLIENT_KEY_DATA> with your client key (base64 encoded)
+#
+# For more information, visit: https://github.com/huskyci-org/huskyCI
