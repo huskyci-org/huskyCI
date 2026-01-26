@@ -3,7 +3,7 @@ FROM golang:1.24-alpine as builder
 ADD api/ /go/src/github.com/huskyci-org/huskyCI/api/
 WORKDIR /go/src/github.com/huskyci-org/huskyCI/api/
 
-RUN go build -o huskyci-api-bin server.go
+RUN go mod tidy && go build -o huskyci-api-bin server.go
 
 FROM alpine:latest
 
