@@ -421,6 +421,7 @@ func (pR *PostgresRequests) UpdateOneDBAccessToken(
 	return nil
 }
 
+// FindAndModifyDockerAPIAddresses finds and modifies Docker API addresses, incrementing the current host index.
 func (pR *PostgresRequests) FindAndModifyDockerAPIAddresses() (types.DockerAPIAddresses, error) {
 	return types.DockerAPIAddresses{}, nil
 }

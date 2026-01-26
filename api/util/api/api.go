@@ -27,26 +27,10 @@ func (hU HuskyUtils) CheckHuskyRequirements(configAPI *apiContext.APIConfig) err
 	log.Info(logActionCheckReqs, logInfoAPIUtil, 12)
 
 	// check infrastructure selection
-	infrastructureSelected, hasSelected := os.LookupEnv("HUSKYCI_INFRASTRUCTURE_USE")
-	if hasSelected {
-		if infrastructureSelected == "docker" {
-			// check if all docker hosts are up and running docker API.
-			if err := hU.CheckHandler.checkDockerHosts(configAPI); err != nil {
-				return err
-			}
-			log.Info(logActionCheckReqs, logInfoAPIUtil, 13)
-		} else if infrastructureSelected == "kubernetes" {
-			// check if all kubernetes hosts are up and running Kubernetes API.
-			if err := hU.CheckHandler.checkKubernetesHosts(configAPI); err != nil {
-				return err
-			}
-			log.Info(logActionCheckReqs, logInfoAPIUtil, 13)
-		} else {
-			return errors.New("invalid HUSKYCI_INFRASTRUCTURE_USE value")
-		}
-	} else {
-		return errors.New("HUSKYCI_INFRASTRUCTURE_USE environment variable not set")
+	if err := checkInfrastructure(hU.CheckHandler, configAPI); err != nil {
+		return err
 	}
+	log.Info(logActionCheckReqs, logInfoAPIUtil, 13)
 
 	// check if DB is accessible and credentials received are working.
 	if err := hU.CheckHandler.checkDB(configAPI); err != nil {
@@ -121,6 +105,22 @@ func (cH *CheckUtils) checkEnvVars() error {
 	return nil
 }
 
+func checkInfrastructure(checkHandler CheckInterface, configAPI *apiContext.APIConfig) error {
+	infrastructureSelected, hasSelected := os.LookupEnv("HUSKYCI_INFRASTRUCTURE_USE")
+	if !hasSelected {
+		return errors.New("HUSKYCI_INFRASTRUCTURE_USE environment variable not set")
+	}
+
+	switch infrastructureSelected {
+	case "docker":
+		return checkHandler.checkDockerHosts(configAPI)
+	case "kubernetes":
+		return checkHandler.checkKubernetesHosts(configAPI)
+	default:
+		return errors.New("invalid HUSKYCI_INFRASTRUCTURE_USE value")
+	}
+}
+
 func (cH *CheckUtils) checkDockerHosts(configAPI *apiContext.APIConfig) error {
 	// writes necessary keys for TLS to respective files
 	if err := createAPIKeys(); err != nil {
@@ -185,6 +185,7 @@ func (cH *CheckUtils) checkDefaultUser(configAPI *apiContext.APIConfig) error {
 	return nil
 }
 
+// FormatDockerHostAddress formats the Docker host address based on the current host index.
 func FormatDockerHostAddress(dockerHost types.DockerAPIAddresses, configAPI *apiContext.APIConfig) (string, error) {
 	if len(dockerHost.HostList) == 0 {
 		return "", errors.New("Docker host list is empty")
