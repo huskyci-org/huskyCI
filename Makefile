@@ -178,3 +178,8 @@ test:
 
 ## Builds and push securityTest containers with the latest tags
 update-containers: build-containers push-containers
+
+## Runs end-to-end tests
+test-e2e:
+	chmod +x tests/e2e/run-e2e-tests.sh
+	./tests/e2e/run-e2e-tests.sh
