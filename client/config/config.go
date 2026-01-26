@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -55,19 +56,29 @@ func CheckEnvVars() error {
 
 	var envIsSet bool
 	var allEnvIsSet bool
-	var errorString string
+	var missingVars []string
 
 	env := make(map[string]string)
 	allEnvIsSet = true
 	for i := 0; i < len(envVars); i++ {
 		env[envVars[i]], envIsSet = os.LookupEnv(envVars[i])
 		if !envIsSet {
-			errorString = errorString + envVars[i] + " "
+			missingVars = append(missingVars, envVars[i])
 			allEnvIsSet = false
 		}
 	}
 	if !allEnvIsSet {
-		return errors.New(errorString)
+		errorMsg := "Missing required environment variables:\n"
+		for _, v := range missingVars {
+			errorMsg += fmt.Sprintf("  - %s\n", v)
+		}
+		errorMsg += "\nPlease set these environment variables before running huskyCI client.\n"
+		errorMsg += "\nExample:\n"
+		errorMsg += "  export HUSKYCI_CLIENT_API_ADDR=\"https://api.huskyci.example.com\"\n"
+		errorMsg += "  export HUSKYCI_CLIENT_REPO_URL=\"https://github.com/user/repo.git\"\n"
+		errorMsg += "  export HUSKYCI_CLIENT_REPO_BRANCH=\"main\"\n"
+		errorMsg += "  export HUSKYCI_CLIENT_TOKEN=\"your-token-here\"\n"
+		return errors.New(errorMsg)
 	}
 	return nil
 }
