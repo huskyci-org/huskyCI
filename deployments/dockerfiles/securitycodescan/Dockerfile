@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:6.0-alpine
 
 RUN apk add jq openssh bash
 
-RUN dotnet tool install --global security-scan --version 5.6.2
+RUN dotnet tool install --global security-scan --version 5.6.7
 
 RUN wget https://dot.net/v1/dotnet-install.sh
 RUN chmod +x dotnet-install.sh

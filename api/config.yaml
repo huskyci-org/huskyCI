@@ -1,7 +1,7 @@
 bandit:
   name: bandit
   image: huskyci/bandit
-  imageTag: "1.6.2"
+  imageTag: "1.9.3"
   cmd: |+
      mkdir -p ~/.ssh &&
      echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -27,7 +27,7 @@ bandit:
 brakeman:
   name: brakeman
   image: huskyci/brakeman
-  imageTag: "4.8.2"
+  imageTag: "7.1.2"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -64,7 +64,7 @@ brakeman:
 enry:
   name: enry
   image: huskyci/enry
-  imageTag: v1.2.0
+  imageTag: v2.9.3
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -90,7 +90,7 @@ enry:
 gitauthors:
   name: gitauthors
   image: huskyci/gitauthors
-  imageTag: "2.18.4"
+  imageTag: "latest"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -121,7 +121,7 @@ gitauthors:
 gitleaks:
   name: gitleaks
   image: huskyci/gitleaks
-  imageTag: "v.7.6.1"
+  imageTag: "v8.30.0"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -152,7 +152,7 @@ gitleaks:
 gosec:
   name: gosec
   image: huskyci/gosec
-  imageTag: v2.3.0
+  imageTag: v2.22.11
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/id_rsa &&
@@ -188,7 +188,7 @@ gosec:
 npmaudit:
   name: npmaudit
   image: huskyci/npmaudit
-  imageTag: "9.6.6"
+  imageTag: "11.8.0"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -226,7 +226,7 @@ npmaudit:
 safety:
   name: safety
   image: huskyci/safety
-  imageTag: "1.9.0"
+  imageTag: "3.7.0"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -272,7 +272,7 @@ safety:
 securitycodescan:
   name: securitycodescan
   image: huskyci/securitycodescan
-  imageTag: "v5.6.2"
+  imageTag: "v5.6.7"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -301,7 +301,7 @@ securitycodescan:
 spotbugs:
   name: spotbugs
   image: huskyci/spotbugs
-  imageTag: "4.0.0-beta4"
+  imageTag: "4.9.8"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -326,7 +326,7 @@ spotbugs:
                    mkdir /tmp/needToBeScanned
                    cp target/*.jar /tmp/needToBeScanned/
                fi
-               java -jar /opt/spotbugs/lib/spotbugs.jar -textui -quiet -xml -bugCategories SECURITY -exclude /opt/spotbugs/exclude.xml -pluginList /opt/findsecbugs-plugin-1.9.0.jar /tmp/needToBeScanned
+               java -jar /opt/spotbugs/lib/spotbugs.jar -textui -quiet -xml -bugCategories SECURITY -exclude /opt/spotbugs/exclude.xml -pluginList /opt/findsecbugs-plugin-1.14.0.jar /tmp/needToBeScanned
            else
                echo "ERROR_RUNNING_MAVEN_BUILD"
                cat /tmp/errorMavenBuild
@@ -337,7 +337,7 @@ spotbugs:
            /opt/gradle/bin/gradle -p /tmp/code build 2> /tmp/errorGradleBuild 1> /dev/null
             if [ $? -eq 0 ]; then
                mv build /tmp/needToBeScanned
-               java -jar /opt/spotbugs/lib/spotbugs.jar -textui -quiet -xml -bugCategories SECURITY -exclude /opt/spotbugs/exclude.xml -pluginList /opt/findsecbugs-plugin-1.9.0.jar /tmp/needToBeScanned
+               java -jar /opt/spotbugs/lib/spotbugs.jar -textui -quiet -xml -bugCategories SECURITY -exclude /opt/spotbugs/exclude.xml -pluginList /opt/findsecbugs-plugin-1.14.0.jar /tmp/needToBeScanned
             else
                echo "ERROR_RUNNING_GRADLE_BUILD"
                cat /tmp/errorGradleBuild
@@ -357,7 +357,7 @@ spotbugs:
 trivy:
   name: trivy
   image: huskyciorg/trivy
-  imageTag: "0.62.1"
+  imageTag: "0.68.2"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
@@ -379,7 +379,7 @@ trivy:
 yarnaudit:
   name: yarnaudit
   image: huskyci/yarnaudit
-  imageTag: "1.22.19"
+  imageTag: "1.22.22"
   cmd: |+
     mkdir -p ~/.ssh &&
     echo '%GIT_PRIVATE_SSH_KEY%' > ~/.ssh/huskyci_id_rsa &&
