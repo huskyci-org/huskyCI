@@ -50,7 +50,7 @@ type Database interface {
 func Connect(address, dbName, username, password string, poolLimit, port int, timeout time.Duration) error {
 
 	log.Info(logActionConnect, logInfoMongo, 21)
-	dbAddress := fmt.Sprintf("%s:%d", address, port)
+	dbAddress := fmt.Sprintf("mongodb://%s:%d", address, port)
 	clientOptions := options.Client().ApplyURI(dbAddress).SetAuth(options.Credential{
 		Username: username,
 		Password: password,
