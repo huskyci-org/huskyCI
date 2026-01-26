@@ -10,7 +10,7 @@ import (
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
 	"github.com/huskyci-org/huskyCI/api/log"
 	"github.com/huskyci-org/huskyCI/api/types"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/pbkdf2"
 	"gopkg.in/mgo.v2"
