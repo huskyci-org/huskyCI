@@ -17,8 +17,9 @@ var IsJSONoutput bool
 
 // JSONPayload is a struct that represents the JSON payload needed to make a HuskyCI API request.
 type JSONPayload struct {
-	RepositoryURL    string `json:"repositoryURL"`
-	RepositoryBranch string `json:"repositoryBranch"`
+	RepositoryURL      string          `json:"repositoryURL"`
+	RepositoryBranch   string          `json:"repositoryBranch"`
+	LanguageExclusions map[string]bool `json:"languageExclusions"`
 }
 
 // Target is the struct that represents HuskyCI API target
@@ -58,6 +59,8 @@ type HuskyCIResults struct {
 	JavaScriptResults JavaScriptResults `bson:"javascriptresults,omitempty" json:"javascriptresults,omitempty"`
 	RubyResults       RubyResults       `bson:"rubyresults,omitempty" json:"rubyresults,omitempty"`
 	JavaResults       JavaResults       `bson:"javaresults,omitempty" json:"javaresults,omitempty"`
+	HclResults        HclResults        `bson:"hclresults,omitempty" json:"hclresults,omitempty"`
+	CSharpResults     CSharpResults     `bson:"csharpresults,omitempty" json:"csharpresults,omitempty"`
 	GenericResults    GenericResults    `bson:"genericresults,omitempty" json:"genericresults,omitempty"`
 }
 
@@ -109,6 +112,8 @@ type JSONOutput struct {
 	JavaScriptResults JavaScriptResults `json:"javascriptresults,omitempty"`
 	RubyResults       RubyResults       `json:"rubyresults,omitempty"`
 	JavaResults       JavaResults       `json:"javaresults,omitempty"`
+	HclResults        HclResults        `json:"hclresults,omitempty"`
+	CSharpResults     CSharpResults     `json:"csharpresults,omitempty"`
 	GenericResults    GenericResults    `json:"genericresults,omitempty"`
 	Summary           Summary           `json:"summary,omitempty"`
 }
@@ -140,9 +145,20 @@ type RubyResults struct {
 	HuskyCIBrakemanOutput HuskyCISecurityTestOutput `bson:"brakemanoutput,omitempty" json:"brakemanoutput,omitempty"`
 }
 
+// HclResults represents all HCL security tests results.
+type HclResults struct {
+	HuskyCITFSecOutput HuskyCISecurityTestOutput `bson:"tfsecoutput,omitempty" json:"tfsecoutput,omitempty"`
+}
+
+// CSharpResults represents all C# security tests results.
+type CSharpResults struct {
+	HuskyCISecurityCodeScanOutput HuskyCISecurityTestOutput `bson:"securitycodescanoutput,omitempty" json:"securitycodescanoutput,omitempty"`
+}
+
 // GenericResults represents all generic securityTests results.
 type GenericResults struct {
-	HuskyCIGitleaksOutput HuskyCISecurityTestOutput `bson:"gitleaksoutput,omitempty" json:"gitleaksoutput,omitempty"`
+	HuskyCIGitleaksOutput HuskyCISecurityTestOutput `json:"gitleaksoutput,omitempty"`
+	HuskyCITrivyOutput    HuskyCISecurityTestOutput `json:"trivyoutput,omitempty"`
 }
 
 // HuskyCISecurityTestOutput stores all Low, Medium and High vulnerabilities for a sec test
@@ -155,18 +171,20 @@ type HuskyCISecurityTestOutput struct {
 
 // Summary holds a summary of the information on all security tests.
 type Summary struct {
-	URL              string         `json:"repositoryURL"`
-	Branch           string         `json:"repositoryBranch"`
-	RID              string         `json:"RID"`
-	GosecSummary     HuskyCISummary `json:"gosecsummary,omitempty"`
-	BanditSummary    HuskyCISummary `json:"banditsummary,omitempty"`
-	SafetySummary    HuskyCISummary `json:"safetysummary,omitempty"`
-	NpmAuditSummary  HuskyCISummary `json:"npmauditsummary,omitempty"`
-	YarnAuditSummary HuskyCISummary `json:"yarnauditsummary,omitempty"`
-	BrakemanSummary  HuskyCISummary `json:"brakemansummary,omitempty"`
-	SpotBugsSummary  HuskyCISummary `json:"spotbugssummary,omitempty"`
-	GitleaksSummary  HuskyCISummary `json:"gitleakssummary,omitempty"`
-	TotalSummary     HuskyCISummary `json:"totalsummary,omitempty"`
+	URL                     string         `json:"repositoryURL"`
+	Branch                  string         `json:"repositoryBranch"`
+	RID                     string         `json:"RID"`
+	GosecSummary            HuskyCISummary `json:"gosecsummary,omitempty"`
+	BanditSummary           HuskyCISummary `json:"banditsummary,omitempty"`
+	SafetySummary           HuskyCISummary `json:"safetysummary,omitempty"`
+	NpmAuditSummary         HuskyCISummary `json:"npmauditsummary,omitempty"`
+	YarnAuditSummary        HuskyCISummary `json:"yarnauditsummary,omitempty"`
+	BrakemanSummary         HuskyCISummary `json:"brakemansummary,omitempty"`
+	SpotBugsSummary         HuskyCISummary `json:"spotbugssummary,omitempty"`
+	GitleaksSummary         HuskyCISummary `json:"gitleakssummary,omitempty"`
+	TFSecSummary            HuskyCISummary `json:"tfsecsummary,omitempty"`
+	SecurityCodeScanSummary HuskyCISummary `json:"securitycodescansummary,omitempty"`
+	TotalSummary            HuskyCISummary `json:"totalsummary,omitempty"`
 }
 
 // HuskyCISummary is the struct that holds summary information.
