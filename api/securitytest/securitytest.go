@@ -26,6 +26,7 @@ var securityTestAnalyze = map[string]func(scanInfo *SecTestScanInfo) error{
 	"gitleaks":         analyseGitleaks,
 	"safety":           analyzeSafety,
 	"tfsec":            analyzeTFSec,
+	"trivy":            analyzeTrivy,
 	"securitycodescan": analyzeSecurityCodeScan,
 }
 
