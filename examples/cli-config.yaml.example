@@ -1,0 +1,41 @@
+# HuskyCI CLI Configuration File
+# This is an example configuration file for the HuskyCI CLI tool.
+# Copy this file to ~/.huskyci/config.yaml and customize it for your environment.
+#
+# The config file uses YAML format and supports multiple targets (HuskyCI API endpoints).
+# You can switch between targets using the 'huskyci target-set' command.
+
+targets:
+  # Example: Local development environment
+  local:
+    current: false
+    endpoint: "http://localhost:8888"
+    token-storage: "keychain"  # Options: "keychain", "file", or leave empty for manual entry
+  
+  # Example: Production environment
+  production:
+    current: true
+    endpoint: "https://huskyci-api.example.com"
+    token-storage: "keychain"
+  
+  # Example: Staging environment
+  staging:
+    current: false
+    endpoint: "https://staging-huskyci-api.example.com"
+    token-storage: "keychain"
+
+# Configuration Notes:
+# - 'current': Set to 'true' for the active target, 'false' for others
+# - 'endpoint': The full URL of your HuskyCI API server (including protocol and port)
+# - 'token-storage': Optional field indicating where authentication tokens are stored
+#   - "keychain": Store tokens in system keychain (macOS/Windows)
+#   - "file": Store tokens in a file
+#   - Leave empty or omit: Tokens will need to be entered manually or via environment variables
+#
+# You can also use environment variables instead of this config file:
+# - HUSKYCI_CLIENT_API_ADDR: API endpoint URL
+# - HUSKYCI_CLIENT_TOKEN: Authentication token
+# - HUSKYCI_CLIENT_REPO_URL: Repository URL to analyze
+# - HUSKYCI_CLIENT_REPO_BRANCH: Repository branch to analyze
+#
+# For more information, visit: https://github.com/huskyci-org/huskyCI
