@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/huskyci-org/huskyCI/cli/config"
-	"github.com/huskyci-org/huskyCI/cli/errorcli"
 	"github.com/huskyci-org/huskyCI/cli/util"
 	"github.com/huskyci-org/huskyCI/cli/vulnerability"
 	"github.com/src-d/enry/v2"
@@ -51,18 +50,26 @@ func (a *Analysis) CheckPath(path string) error {
 
 	fullPath, err := filepath.Abs(path)
 	if err != nil {
-		errorcli.Handle(err)
+		return fmt.Errorf("error resolving path '%s': %w", path, err)
 	}
 
-	fmt.Println("[HUSKYCI] Scanning your code from", fullPath)
+	// Check if path exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return fmt.Errorf("path does not exist: %s\n\nTip: Make sure the path is correct and try again", fullPath)
+	}
+
+	fmt.Printf("🔍 Scanning code from: %s\n", fullPath)
 
 	if err := a.setLanguages(fullPath); err != nil {
-		errorcli.Handle(err)
+		if err.Error() == "no languages found" {
+			return fmt.Errorf("no supported programming languages found in '%s'\n\nTip: Make sure the directory contains code files in supported languages (Python, Ruby, JavaScript, Go, Java, C#, HCL)", fullPath)
+		}
+		return fmt.Errorf("error detecting languages: %w", err)
 	}
 
+	fmt.Println("\n📋 Detected languages:")
 	for language := range a.getAvailableSecurityTests(a.Languages) {
-		s := fmt.Sprintf("[HUSKYCI] %s found.", language)
-		fmt.Println(s)
+		fmt.Printf("  ✓ %s\n", language)
 	}
 
 	return nil
@@ -71,49 +78,49 @@ func (a *Analysis) CheckPath(path string) error {
 // CompressFiles will compress all files from a given path into a single file named GUID
 func (a *Analysis) CompressFiles(path string) error {
 
-	fmt.Println("[HUSKYCI] Compressing your code...")
+	fmt.Println("\n📦 Compressing code...")
 
 	if err := a.HouseCleaning(); err != nil {
 		// it's ok. maybe the file is not there yet.
-		fmt.Print("")
 	}
 
 	allFilesAndDirNames, err := util.GetAllAllowedFilesAndDirsFromPath(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reading files from path: %w", err)
 	}
 
 	zipFilePath, err := util.CompressFiles(allFilesAndDirNames)
 	if err != nil {
-		return err
+		return fmt.Errorf("error compressing files: %w", err)
 	}
 
 	if err := a.setZipSize(zipFilePath); err != nil {
-		return err
+		return fmt.Errorf("error calculating archive size: %w", err)
 	}
 
-	fmt.Println("[HUSKYCI] Compressed! ", zipFilePath, a.CompressedFile.Size)
+	fmt.Printf("✓ Compressed successfully! Size: %s\n", a.CompressedFile.Size)
 
 	return nil
 }
 
 // SendZip will send the zip file to the huskyCI API to start the analysis
 func (a *Analysis) SendZip() error {
-	fmt.Println("[HUSKYCI] Sending your code to the huskyCI API at...")
-	defer fmt.Println("[HUSKYCI] Sent!")
+	fmt.Println("\n🚀 Sending code to huskyCI API...")
+	defer fmt.Println("✓ Code sent successfully!")
 	return nil
 }
 
 // CheckStatus is a worker to check the huskyCI API for the status of the particular analysis
 func (a *Analysis) CheckStatus() error {
-	fmt.Println("[HUSKYCI] Checking if the analysis has already finished...")
-	defer fmt.Println("[HUSKYCI] Checked!")
+	fmt.Println("\n⏳ Checking analysis status...")
+	defer fmt.Println("✓ Analysis check completed!")
 	return nil
 }
 
 // PrintVulns prints all vulnerabilities found after the analysis has been finished
 func (a *Analysis) PrintVulns() {
-	fmt.Println("[HUSKYCI] Results:")
+	fmt.Println("\n📊 Analysis Results:")
+	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 }
 
 // HouseCleaning will do stuff to clean the $HOME directory.
