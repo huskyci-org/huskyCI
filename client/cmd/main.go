@@ -60,46 +60,8 @@ func main() {
 	}
 
 	// step 4: block developer CI if vulnerabilities were found
-	if !types.FoundVuln && !types.FoundInfo {
-		if !types.IsJSONoutput {
-			if len(errorList) > 0 {
-				fmt.Println("[HUSKYCI][*] The following securityTests failed to run:")
-				fmt.Println("[HUSKYCI][*]", errorList)
-			}
-			fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
-			fmt.Println("[HUSKYCI][*]", passedList)
-			fmt.Println("[HUSKYCI][*] No issues were found.")
-		}
-		os.Exit(0)
-	}
-
-	if !types.FoundVuln && types.FoundInfo {
-		if !types.IsJSONoutput {
-			if len(errorList) > 0 {
-				fmt.Println("[HUSKYCI][*] The following securityTests failed to run:")
-				fmt.Println("[HUSKYCI][*]", errorList)
-			}
-			fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
-			fmt.Println("[HUSKYCI][*]", passedList)
-			fmt.Println("[HUSKYCI][*] However, some LOW/INFO issues were found...")
-		}
-		os.Exit(0)
-	}
-
-	if types.FoundVuln && !types.IsJSONoutput {
-		if len(errorList) > 0 {
-			fmt.Println("[HUSKYCI][*] The following securityTests failed to run:")
-			fmt.Println("[HUSKYCI][*]", errorList)
-		}
-		if len(passedList) > 0 {
-			fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
-			fmt.Println("[HUSKYCI][*]", passedList)
-		}
-		fmt.Println("[HUSKYCI][*] Some HIGH/MEDIUM issues were found in these securityTests:")
-		fmt.Println("[HUSKYCI][*]", failedList)
-	}
-
-	os.Exit(190)
+	exitCode := handleVulnerabilityResults(passedList, failedList, errorList)
+	os.Exit(exitCode)
 }
 
 func setJSONOutputFlag() {
@@ -169,4 +131,55 @@ func generateSonarQubeOutput(huskyAnalysis types.Analysis) error {
 	}
 
 	return sonarqube.GenerateOutputFile(huskyAnalysis, outputPath, outputFileName)
+}
+
+func handleVulnerabilityResults(passedList, failedList, errorList []string) int {
+	switch {
+	case !types.FoundVuln && !types.FoundInfo:
+		printNoVulnerabilitiesFound(passedList, errorList)
+		return 0
+	case !types.FoundVuln && types.FoundInfo:
+		printInfoVulnerabilitiesFound(passedList, errorList)
+		return 0
+	default:
+		printVulnerabilitiesFound(passedList, failedList, errorList)
+		return 190
+	}
+}
+
+func printNoVulnerabilitiesFound(passedList, errorList []string) {
+	if !types.IsJSONoutput {
+		printErrorList(errorList)
+		fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
+		fmt.Println("[HUSKYCI][*]", passedList)
+		fmt.Println("[HUSKYCI][*] No issues were found.")
+	}
+}
+
+func printInfoVulnerabilitiesFound(passedList, errorList []string) {
+	if !types.IsJSONoutput {
+		printErrorList(errorList)
+		fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
+		fmt.Println("[HUSKYCI][*]", passedList)
+		fmt.Println("[HUSKYCI][*] However, some LOW/INFO issues were found...")
+	}
+}
+
+func printVulnerabilitiesFound(passedList, failedList, errorList []string) {
+	if !types.IsJSONoutput {
+		printErrorList(errorList)
+		if len(passedList) > 0 {
+			fmt.Println("[HUSKYCI][*] The following securityTests were executed and no blocking vulnerabilities were found:")
+			fmt.Println("[HUSKYCI][*]", passedList)
+		}
+		fmt.Println("[HUSKYCI][*] Some HIGH/MEDIUM issues were found in these securityTests:")
+		fmt.Println("[HUSKYCI][*]", failedList)
+	}
+}
+
+func printErrorList(errorList []string) {
+	if len(errorList) > 0 {
+		fmt.Println("[HUSKYCI][*] The following securityTests failed to run:")
+		fmt.Println("[HUSKYCI][*]", errorList)
+	}
 }
