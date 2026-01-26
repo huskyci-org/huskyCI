@@ -70,6 +70,11 @@ func GenerateOutputFile(analysis types.Analysis, outputPath, outputFileName stri
 	allVulns = append(allVulns, analysis.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.MediumVulns...)
 	allVulns = append(allVulns, analysis.HuskyCIResults.JavaResults.HuskyCISpotBugsOutput.HighVulns...)
 
+	// securitycodescan
+	allVulns = append(allVulns, analysis.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.LowVulns...)
+	allVulns = append(allVulns, analysis.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.MediumVulns...)
+	allVulns = append(allVulns, analysis.HuskyCIResults.CSharpResults.HuskyCISecurityCodeScanOutput.HighVulns...)
+
 	var sonarOutput HuskyCISonarOutput
 	sonarOutput.Rules = make([]SonarRule, 0)
 	sonarOutput.Issues = make([]SonarIssue, 0)
@@ -78,13 +83,18 @@ func GenerateOutputFile(analysis types.Analysis, outputPath, outputFileName stri
 
 	// Generate rules and issues
 	for _, vuln := range allVulns {
-		ruleID := fmt.Sprintf("%s - %s", vuln.Language, vuln.Title)
+		// Generate rule ID - use SecurityTool if Title is empty
+		ruleName := vuln.Title
+		if ruleName == "" {
+			ruleName = vuln.SecurityTool
+		}
+		ruleID := fmt.Sprintf("%s - %s", vuln.Language, ruleName)
 
 		// Add the rule only if it hasn't been added before
 		if !ruleMap[ruleID] {
 			rule := SonarRule{
 				ID:                 ruleID,
-				Name:               vuln.Title,
+				Name:               ruleName,
 				Description:        getMessage(vuln.Details),
 				EngineID:           "huskyCI/" + vuln.SecurityTool,
 				CleanCodeAttribute: "TRUSTWORTHY",
@@ -99,10 +109,16 @@ func GenerateOutputFile(analysis types.Analysis, outputPath, outputFileName stri
 		}
 
 		// Create an issue for the vulnerability
+		// Use Details for message, fallback to Version if Details is empty
+		message := getMessage(vuln.Details)
+		if message == "No details provided for this vulnerability." && vuln.Version != "" {
+			message = vuln.Version
+		}
+
 		issue := SonarIssue{
 			RuleID: ruleID,
 			PrimaryLocation: SonarLocation{
-				Message:  getMessage(vuln.Version),
+				Message:  message,
 				FilePath: getFilePath(vuln, outputPath),
 				TextRange: SonarTextRange{
 					StartLine: getStartLine(vuln.Line),
