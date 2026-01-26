@@ -114,6 +114,7 @@ func (db *DB) UpdateAll(query, updateQuery interface{}, collection string) error
 	return err
 }
 
+// FindAndModify finds a document matching the query and updates it, returning the updated document.
 func (db *DB) FindAndModify(findQuery, updateQuery interface{}, collection string, obj interface{}) error {
 	c := db.DB.Collection(collection)
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)

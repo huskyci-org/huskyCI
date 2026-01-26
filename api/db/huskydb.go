@@ -267,6 +267,7 @@ func (mR *MongoRequests) UpdateOneDBAccessToken(mapParams map[string]interface{}
 	return err
 }
 
+// FindAndModifyDockerAPIAddresses finds and modifies Docker API addresses, incrementing the current host index.
 func (mR *MongoRequests) FindAndModifyDockerAPIAddresses() (types.DockerAPIAddresses, error) {
 	findQuery := bson.M{}
 	updateQuery := bson.M{"$inc": bson.M{"currentHostIndex": 1}}

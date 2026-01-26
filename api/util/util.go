@@ -24,8 +24,11 @@ const (
 	KeyFile = "api/api-tls-key.pem"
 )
 
-const logInfoAnalysis = "ANALYSIS"
-const logActionReceiveRequest = "ReceiveRequest"
+const (
+	logInfoAnalysis        = "ANALYSIS"
+	logActionReceiveRequest = "ReceiveRequest"
+	errInternalError       = "internal error"
+)
 
 // HandleCmd will extract %GIT_REPO%, %GIT_BRANCH% from cmd and replace it with the proper repository URL.
 func HandleCmd(repositoryURL, repositoryBranch, cmd string) string {
@@ -113,7 +116,7 @@ func RemoveDuplicates(s []string) []string {
 
 // HandleScanError show the right error when json is not expected as output of scan
 func HandleScanError(containerOutput string, otherErr error) error {
-	return fmt.Errorf("%s\nError from top: %v\n", containerOutput, otherErr)
+	return fmt.Errorf("%s\nerror from top: %v", containerOutput, otherErr)
 }
 
 // CheckValidInput checks if an user's input is "malicious" or not
@@ -127,7 +130,7 @@ func CheckValidInput(repository types.Repository, c echo.Context) (string, error
 			return "", c.JSON(http.StatusBadRequest, reply)
 		}
 		log.Error(logActionReceiveRequest, logInfoAnalysis, 1008, "Repository URL regexp ", err)
-		reply := map[string]interface{}{"success": false, "error": "internal error"}
+		reply := map[string]interface{}{"success": false, "error": errInternalError}
 		return "", c.JSON(http.StatusInternalServerError, reply)
 	}
 
@@ -159,7 +162,7 @@ func CheckMaliciousRepoBranch(repositoryBranch string, c echo.Context) error {
 	valid, err := regexp.MatchString(regexpBranch, repositoryBranch)
 	if err != nil {
 		log.Error(logActionReceiveRequest, logInfoAnalysis, 1008, "Repository Branch regexp ", err)
-		reply := map[string]interface{}{"success": false, "error": "internal error"}
+		reply := map[string]interface{}{"success": false, "error": errInternalError}
 		return c.JSON(http.StatusInternalServerError, reply)
 	}
 	if !valid {
@@ -176,7 +179,7 @@ func CheckMaliciousRID(RID string, c echo.Context) error {
 	valid, err := regexp.MatchString(regexpRID, RID)
 	if err != nil {
 		log.Error("GetAnalysis", logInfoAnalysis, 1008, "RID regexp ", err)
-		reply := map[string]interface{}{"success": false, "error": "internal error"}
+		reply := map[string]interface{}{"success": false, "error": errInternalError}
 		return c.JSON(http.StatusInternalServerError, reply)
 	}
 	if !valid {

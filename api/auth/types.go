@@ -31,7 +31,7 @@ type MongoBasic struct {
 	ClientHandler UserCredsHandler
 }
 
-//ClientPbkdf2 is the struct that stores all information regarding a the pbkdf2 client.
+// ClientPbkdf2 is the struct that stores all information regarding a the pbkdf2 client.
 type ClientPbkdf2 struct {
 	HashGen      Pbkdf2Generator
 	Salt         string

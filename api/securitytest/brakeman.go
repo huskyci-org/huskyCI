@@ -12,7 +12,7 @@ import (
 
 // BrakemanOutput is the struct that holds issues and stats found on a Brakeman scan.
 type BrakemanOutput struct {
-	Warnings []WarningItem `json:"warnings"`
+	Warnings        []WarningItem `json:"warnings"`
 	IgnoredWarnings []WarningItem `json:"ignored_warnings"`
 }
 
