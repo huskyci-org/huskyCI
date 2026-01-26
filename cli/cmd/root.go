@@ -9,7 +9,6 @@ import (
 	"os"
 
 	"github.com/huskyci-org/huskyCI/cli/config"
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -51,7 +50,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
-		home, err := homedir.Dir()
+		home, err := os.UserHomeDir()
 		if err != nil {
 			fmt.Printf("Client error reading home folder: %s (%s)\n", home, err.Error())
 			os.Exit(1)
