@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/patrickmn/go-cache"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"

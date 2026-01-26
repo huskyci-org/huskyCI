@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 )
 
 // GetAPIVersion returns the API version
