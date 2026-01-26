@@ -31,22 +31,33 @@ func main() {
 
 	// step 0: check and set huskyci-client configuration
 	if err := initializeConfig(); err != nil {
-		printErrorIfNotJSON("[HUSKYCI][ERROR] Check environment variables:", err)
+		if !types.IsJSONoutput {
+			fmt.Fprintf(os.Stderr, "\n❌ Configuration Error:\n%s\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "[HUSKYCI][ERROR] Configuration error: %s\n", err)
+		}
 		os.Exit(1)
 	}
 
 	// step 1: start analysis and get its RID.
 	RID, err := startAnalysis()
 	if err != nil {
-		fmt.Println("[HUSKYCI][ERROR] Sending request to huskyCI:", err)
+		if !types.IsJSONoutput {
+			fmt.Fprintf(os.Stderr, "\n❌ Failed to start analysis:\n%s\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "[HUSKYCI][ERROR] Failed to start analysis: %s\n", err)
+		}
 		os.Exit(1)
 	}
 
 	// step 2.1: keep querying huskyCI API to check if a given analysis has already finished.
 	huskyAnalysis, err := analysis.MonitorAnalysis(RID)
 	if err != nil {
-		s := fmt.Sprintf("[HUSKYCI][ERROR] Monitoring analysis %s: %s", RID, err)
-		fmt.Println(s)
+		if !types.IsJSONoutput {
+			fmt.Fprintf(os.Stderr, "\n❌ Analysis monitoring failed:\n%s\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "[HUSKYCI][ERROR] Analysis monitoring failed (RID: %s): %s\n", RID, err)
+		}
 		os.Exit(1)
 	}
 
@@ -58,14 +69,23 @@ func main() {
 
 	err = analysis.PrintResults(huskyAnalysis)
 	if err != nil {
-		fmt.Println("[HUSKYCI][ERROR] Printing output:", err)
-		os.Exit(1)
+		if !types.IsJSONoutput {
+			fmt.Fprintf(os.Stderr, "\n⚠️  Warning: Failed to print results: %s\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "[HUSKYCI][ERROR] Failed to print results: %s\n", err)
+		}
+		// Don't exit here, continue to SonarQube output generation
 	}
 
 	// step 3.5: integration with SonarQube
 	if err := generateSonarQubeOutput(huskyAnalysis); err != nil {
-		fmt.Println("[ERROR] Failed to generate SonarQube JSON file:", err)
-		os.Exit(1)
+		if !types.IsJSONoutput {
+			fmt.Fprintf(os.Stderr, "\n⚠️  Warning: Failed to generate SonarQube output file: %s\n", err)
+			fmt.Fprintf(os.Stderr, "Tip: The analysis completed successfully, but SonarQube integration output could not be generated.\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "[HUSKYCI][ERROR] Failed to generate SonarQube JSON file: %s\n", err)
+		}
+		// Don't exit here, continue to vulnerability handling
 	}
 
 	// step 4: block developer CI if vulnerabilities were found
@@ -93,8 +113,10 @@ func initializeConfig() error {
 
 func startAnalysis() (string, error) {
 	if !types.IsJSONoutput {
-		s := fmt.Sprintf("[HUSKYCI][*] %s -> %s", config.RepositoryBranch, config.RepositoryURL)
-		fmt.Println(s)
+		fmt.Println("🚀 Starting huskyCI analysis...")
+		fmt.Printf("📦 Repository: %s\n", config.RepositoryURL)
+		fmt.Printf("🌿 Branch: %s\n", config.RepositoryBranch)
+		fmt.Println()
 	}
 
 	RID, err := analysis.StartAnalysis()
@@ -103,7 +125,9 @@ func startAnalysis() (string, error) {
 	}
 
 	if !types.IsJSONoutput {
-		fmt.Println("[HUSKYCI][*] huskyCI analysis started! RID:", RID)
+		fmt.Printf("✓ Analysis started successfully!\n")
+		fmt.Printf("📋 Request ID (RID): %s\n", RID)
+		fmt.Println()
 	}
 
 	return RID, nil

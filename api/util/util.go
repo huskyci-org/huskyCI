@@ -126,11 +126,19 @@ func CheckValidInput(repository types.Repository, c echo.Context) (string, error
 	if err != nil {
 		if sanitiziedURL == "" {
 			log.Error(logActionReceiveRequest, logInfoAnalysis, 1016, repository.URL)
-			reply := map[string]interface{}{"success": false, "error": "invalid repository URL"}
+			reply := map[string]interface{}{
+				"success": false,
+				"error":   "invalid repository URL",
+				"message": fmt.Sprintf("The repository URL '%s' is not in a valid format. Please provide a valid Git repository URL (e.g., https://github.com/user/repo.git or git@github.com:user/repo.git)", repository.URL),
+			}
 			return "", c.JSON(http.StatusBadRequest, reply)
 		}
 		log.Error(logActionReceiveRequest, logInfoAnalysis, 1008, "Repository URL regexp ", err)
-		reply := map[string]interface{}{"success": false, "error": errInternalError}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "internal server error",
+			"message": "An error occurred while validating the repository URL. Please try again.",
+		}
 		return "", c.JSON(http.StatusInternalServerError, reply)
 	}
 
@@ -167,7 +175,11 @@ func CheckMaliciousRepoBranch(repositoryBranch string, c echo.Context) error {
 	}
 	if !valid {
 		log.Error(logActionReceiveRequest, logInfoAnalysis, 1017, repositoryBranch)
-		reply := map[string]interface{}{"success": false, "error": "invalid repository branch"}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "invalid repository branch",
+			"message": fmt.Sprintf("The branch name '%s' contains invalid characters. Branch names can only contain letters, numbers, underscores, forward slashes, dots, hyphens, plus signs, and accented characters.", repositoryBranch),
+		}
 		return c.JSON(http.StatusBadRequest, reply)
 	}
 	return nil
@@ -184,7 +196,11 @@ func CheckMaliciousRID(RID string, c echo.Context) error {
 	}
 	if !valid {
 		log.Warning("GetAnalysis", logInfoAnalysis, 107, RID)
-		reply := map[string]interface{}{"success": false, "error": "invalid RID"}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "invalid RID format",
+			"message": fmt.Sprintf("The RID '%s' contains invalid characters. RID must only contain letters, numbers, hyphens, and underscores.", RID),
+		}
 		return c.JSON(http.StatusBadRequest, reply)
 	}
 	return nil

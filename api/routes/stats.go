@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -39,15 +40,27 @@ func checkError(err error, metricType string) (int, map[string]interface{}) {
 	switch err.Error() {
 	case "invalid time_range query string param":
 		log.Warning(logActionGetMetric, logInfoStats, 111, err)
-		reply := map[string]interface{}{"success": false, "error": "invalid time_range type"}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "invalid time_range parameter",
+			"message": "The 'time_range' query parameter is invalid. Please provide a valid time range format.",
+		}
 		return http.StatusBadRequest, reply
 	case "invalid metric type":
 		log.Warning(logActionGetMetric, logInfoStats, 112, metricType, err)
-		reply := map[string]interface{}{"success": false, "error": "invalid metric type"}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "invalid metric type",
+			"message": fmt.Sprintf("The metric type '%s' is not valid. Please check the available metric types and try again.", metricType),
+		}
 		return http.StatusBadRequest, reply
 	default:
 		log.Error(logActionGetMetric, logInfoStats, 2017, metricType, err)
-		reply := map[string]interface{}{"success": false, "error": "internal error"}
+		reply := map[string]interface{}{
+			"success": false,
+			"error":   "internal server error",
+			"message": "An unexpected error occurred while retrieving metrics. Please try again later.",
+		}
 		return http.StatusInternalServerError, reply
 	}
 }

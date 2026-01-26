@@ -18,15 +18,36 @@ var (
 
 	rootCmd = &cobra.Command{
 		Use:   "huskyci",
-		Short: "huskyci is the huskyCI command line tool",
-		Long: `
-huskyCI is an open source tool that orchestrates security tests and
+		Short: "huskyCI - Security testing orchestration tool",
+		Long: `huskyCI is an open source tool that orchestrates security tests and
 centralizes all results into a database for further analysis and metrics.
-It can perform static security analysis in Python (Bandit and Safety),
-Ruby (Brakeman), JavaScript (Npm Audit and Yarn Audit), Golang (Gosec),
-Java (SpotBugs plus Find Sec Bugs), C# (Security Code Scan), and infrastructure
-scanning with Trivy. It can also audit repositories for secrets like AWS Secret Keys,
+
+It can perform static security analysis in:
+  • Python (Bandit and Safety)
+  • Ruby (Brakeman)
+  • JavaScript (Npm Audit and Yarn Audit)
+  • Golang (Gosec)
+  • Java (SpotBugs plus Find Sec Bugs)
+  • C# (Security Code Scan)
+  • Infrastructure scanning with Trivy
+
+It can also audit repositories for secrets like AWS Secret Keys,
 Private SSH Keys, and many others using GitLeaks.
+
+Examples:
+  # Run a security analysis on a local directory
+  huskyci run ./my-project
+
+  # Add a new API target
+  huskyci target-add production https://api.huskyci.example.com
+
+  # List all configured targets
+  huskyci target-list
+
+  # Login with GitHub
+  huskyci login
+
+For more information, visit: https://github.com/huskyci-org/huskyCI
 		`,
 	}
 )

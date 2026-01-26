@@ -12,9 +12,14 @@ func init() {
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the huskyCI version",
-	// Long:  `All software has versions. This is Hugo's`,
+	Short: "Print the huskyCI CLI version",
+	Long: `Print the version information for the huskyCI command-line tool.
+
+Examples:
+  # Show version
+  huskyci version`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Client version: 0.12")
+		fmt.Println("huskyCI CLI version: 0.12")
+		fmt.Println("For more information, visit: https://github.com/huskyci-org/huskyCI")
 	},
 }

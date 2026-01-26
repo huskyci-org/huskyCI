@@ -9,11 +9,16 @@ import (
 
 // targetRemoveCmd represents the targetRemove command
 var targetRemoveCmd = &cobra.Command{
-	Use:   "target-remove",
-	Short: "Remove a target from target-list (huskyci api)",
-	Long: `
-	Remove a target from target-list (huskyci api).
-	`,
+	Use:   "target-remove [name]",
+	Short: "Remove a target from the target list",
+	Long: `Remove a target from the list of available targets.
+
+Examples:
+  # Remove a target named 'staging'
+  huskyci target-remove staging
+
+  # Remove a target named 'old-production'
+  huskyci target-remove old-production`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
@@ -26,7 +31,7 @@ var targetRemoveCmd = &cobra.Command{
 			}
 		}
 		if notUsed {
-			return fmt.Errorf("Error, target does not exist: %s", args[0])
+			return fmt.Errorf("target '%s' does not exist\n\nTip: Use 'huskyci target-list' to see available targets", args[0])
 		}
 
 		// remove entry from data struct but, before, storing data to show to user
@@ -37,10 +42,10 @@ var targetRemoveCmd = &cobra.Command{
 		// save config
 		err := viper.WriteConfig()
 		if err != nil {
-			return fmt.Errorf("Client error saving config without target: (%s)", err.Error())
+			return fmt.Errorf("error saving configuration: %w\n\nTip: Check if you have write permissions to the config file", err)
 		}
 
-		fmt.Printf("Target %s -> %s removed from target list\n", args[0], endpoint)
+		fmt.Printf("✓ Successfully removed target '%s' (%s) from target list\n", args[0], endpoint)
 		return nil
 	},
 }
