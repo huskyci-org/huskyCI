@@ -5,10 +5,10 @@ import (
 	"encoding/base64"
 	"time"
 
+	"github.com/google/uuid"
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
 	"github.com/huskyci-org/huskyCI/api/types"
 	"github.com/huskyci-org/huskyCI/api/util"
-	"github.com/google/uuid"
 )
 
 // ValidateURL validates if an URL is malicious or not.
