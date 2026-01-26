@@ -29,3 +29,9 @@ huskyci-client-bin
 huskyci-cli-bin
 
 deployments/kubeconfig/config.yaml
+
+# Snyk Security Extension - AI Rules (auto-generated)
+.cursor/rules/snyk_rules.mdc
+
+# Go workspace file (local development)
+go.work
