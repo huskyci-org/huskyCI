@@ -28,11 +28,12 @@ type Vulnerability struct {
 	Title              string           `json:"title"`
 }
 
+// FixAvailableType holds the information about whether a fix is available for a vulnerability.
 type FixAvailableType struct {
 	Text string
 }
 
-// FixAvailableType holds the information of the dependency that originated the vulnerability
+// FixAvailableTypeNPM holds the information of the dependency that originated the vulnerability.
 type FixAvailableTypeNPM struct {
 	Name          string `json:"name"`
 	Version       string `json:"version"`
@@ -45,7 +46,7 @@ type Via struct {
 	Name       string   `json:"name"`
 	Dependency string   `json:"dependency"`
 	Title      string   `json:"title"`
-	Url        string   `json:"url"`
+	URL        string   `json:"url"`
 	Severity   string   `json:"severity"`
 	CWE        []string `json:"cwe"`
 	CVSS       CVSSType `json:"cvss"`
@@ -72,10 +73,12 @@ type VulnerabilitiesSummary struct {
 	Critical int `json:"critical"`
 }
 
+// ViaMessage represents a message or detailed information about a vulnerability via path.
 type ViaMessage struct {
 	Text string
 }
 
+// UnmarshalJSON implements custom JSON unmarshaling for ViaMessage.
 func (e *ViaMessage) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || string(data) == "null" {
 		return nil
@@ -93,7 +96,7 @@ func (e *ViaMessage) UnmarshalJSON(data []byte) error {
 		e.Text += fmt.Sprintf("\tName: %s\n", tmp.Name)
 		e.Text += fmt.Sprintf("\tDependency: %s\n", tmp.Dependency)
 		e.Text += fmt.Sprintf("\tTitle: %s\n", tmp.Title)
-		e.Text += fmt.Sprintf("\tUrl: %s\n", tmp.Url)
+		e.Text += fmt.Sprintf("\tUrl: %s\n", tmp.URL)
 		e.Text += fmt.Sprintf("\tSeverity: %s\n", tmp.Severity)
 		e.Text += "\tCWEs: "
 		for _, cwe := range tmp.CWE {
@@ -107,6 +110,7 @@ func (e *ViaMessage) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("unsupported Via field")
 }
 
+// UnmarshalJSON implements custom JSON unmarshaling for FixAvailableType.
 func (e *FixAvailableType) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || string(data) == "null" {
 		return nil
