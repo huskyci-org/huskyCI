@@ -49,6 +49,18 @@ build-client-linux:
 build-cli:
 	cd cli && $(GO) build -ldflags $(LDFLAGS) -o "$(HUSKYCI-CLI-BIN)" main.go
 
+## Builds cli code using macOS (darwin) architecture into a binary
+build-cli-darwin:
+	cd cli && GOOS=darwin GOARCH=$(shell go env GOARCH) $(GO) build -ldflags $(LDFLAGS) -o "$(HUSKYCI-CLI-BIN)" main.go
+
+## Builds cli code using macOS (darwin) architecture for Intel Macs (amd64)
+build-cli-darwin-amd64:
+	cd cli && GOOS=darwin GOARCH=amd64 $(GO) build -ldflags $(LDFLAGS) -o "$(HUSKYCI-CLI-BIN)" main.go
+
+## Builds cli code using macOS (darwin) architecture for Apple Silicon Macs (arm64)
+build-cli-darwin-arm64:
+	cd cli && GOOS=darwin GOARCH=arm64 $(GO) build -ldflags $(LDFLAGS) -o "$(HUSKYCI-CLI-BIN)" main.go
+
 ## Builds cli code using linux architecture into a binary
 build-cli-linux:
 	cd cli && GOOS=linux GOARCH=amd64 $(GO) build -ldflags $(LDFLAGS) -o "$(HUSKYCI-CLI-BIN)" main.go
