@@ -15,6 +15,7 @@ import (
 
 var (
 	cfgFile string
+	verbose bool
 
 	rootCmd = &cobra.Command{
 		Use:   "huskyci",
@@ -38,6 +39,9 @@ Examples:
   # Run a security analysis on a local directory
   huskyci run ./my-project
 
+  # Run with verbose output for debugging
+  huskyci run ./my-project --verbose
+
   # Add a new API target
   huskyci target-add production https://api.huskyci.example.com
 
@@ -59,6 +63,12 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.huskyci/config.yaml)")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose output for debugging")
+}
+
+// IsVerbose returns whether verbose mode is enabled
+func IsVerbose() bool {
+	return verbose
 }
 
 // initConfig reads in config file and ENV variables if set.
