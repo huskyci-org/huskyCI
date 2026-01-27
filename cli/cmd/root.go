@@ -44,9 +44,6 @@ Examples:
   # List all configured targets
   huskyci target-list
 
-  # Login with GitHub
-  huskyci login
-
 For more information, visit: https://github.com/huskyci-org/huskyCI
 		`,
 	}
