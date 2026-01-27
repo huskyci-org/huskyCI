@@ -42,6 +42,9 @@ Examples:
 		pathReceived := args[0]
 		currentAnalysis := analysis.New()
 
+		// Set verbose mode from flag
+		analysis.SetVerbose(IsVerbose())
+
 		fmt.Println()
 		if err := currentAnalysis.CheckPath(pathReceived); err != nil {
 			errorcli.Handle(err)
