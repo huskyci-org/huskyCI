@@ -7,11 +7,12 @@ services:
         container_name: huskyCI_Docker_API
         command: "dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2376"
         ports:
-          - "2376:2376"
+            - "2376:2376"
         volumes:
             - docker_vol:/var/lib/docker
             - ../deployments/daemon.json:/etc/docker/daemon.json:ro
             - ../deployments/certs:/data/certs
+            - /tmp/huskyci-zips-host:/tmp/huskyci-zips
         networks:
             - huskyCI_net
 
@@ -40,6 +41,7 @@ services:
             - ../deployments/certs/server-dockerapi-key.pem:/go/src/github.com/huskyci-org/huskyCI/key.pem:ro
             - ../deployments/certs/ca.pem:/go/src/github.com/huskyci-org/huskyCI/ca.pem:ro
             - ../deployments/kubeconfig:/go/src/github.com/huskyci-org/huskyCI/kubeconfig
+            - /tmp/huskyci-zips-host:/tmp/huskyci-zips
         ports:
           - "8888:8888"
         networks:
