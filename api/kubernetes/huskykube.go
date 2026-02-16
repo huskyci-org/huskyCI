@@ -33,6 +33,11 @@ func configureImagePath(image, tag string) (string, string) {
 
 // KubeRun starts a new pod and returns its output and an error.
 func KubeRun(image, imageTag, cmd, securityTestName, id string, podSchedulingTimeoutInSeconds, timeOutInSeconds int) (string, string, error) {
+	return KubeRunWithVolume(image, imageTag, cmd, securityTestName, id, "", podSchedulingTimeoutInSeconds, timeOutInSeconds)
+}
+
+// KubeRunWithVolume starts a new pod with an optional volume mount and returns its output and an error.
+func KubeRunWithVolume(image, imageTag, cmd, securityTestName, id, volumePath string, podSchedulingTimeoutInSeconds, timeOutInSeconds int) (string, string, error) {
 
 	// step 1: create a new Kubernetes API client
 	k, err := NewKubernetes()
@@ -46,7 +51,7 @@ func KubeRun(image, imageTag, cmd, securityTestName, id string, podSchedulingTim
 	podName := fmt.Sprintf("%s-%s", strings.ToLower(id), securityTestName)
 
 	// step 3: create a new container given an image and it's cmd
-	podUID, err := k.CreatePod(fullContainerImage, cmd, podName, securityTestName)
+	podUID, err := k.CreatePodWithVolume(fullContainerImage, cmd, podName, securityTestName, volumePath)
 	if err != nil {
 		log.Error(logActionRun, logInfoHuskyKube, 5002, fullContainerImage, k.PID, err.Error())
 		return "", "", err

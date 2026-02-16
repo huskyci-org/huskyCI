@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
 	docker "github.com/huskyci-org/huskyCI/api/dockers"
@@ -127,7 +128,8 @@ func (cH *CheckUtils) checkDockerHosts(configAPI *apiContext.APIConfig) error {
 		return err
 	}
 
-	dockerHost := fmt.Sprintf("https://%s", configAPI.DockerHostsConfig.Host)
+	// Format Docker host address correctly (handles both Unix sockets and TCP addresses)
+	dockerHost := formatDockerHost(configAPI.DockerHostsConfig.Address, configAPI.DockerHostsConfig.DockerAPIPort)
 
 	return docker.HealthCheckDockerAPI(dockerHost)
 }
@@ -185,6 +187,21 @@ func (cH *CheckUtils) checkDefaultUser(configAPI *apiContext.APIConfig) error {
 	return nil
 }
 
+// formatDockerHost formats a Docker host address, handling both Unix sockets and TCP addresses.
+func formatDockerHost(address string, port int) string {
+	// Check if address is already a Unix socket path (starts with unix:// or /)
+	if strings.HasPrefix(address, "unix://") {
+		return address
+	}
+	if strings.HasPrefix(address, "/") {
+		// Format Unix socket path with unix:// prefix (triple slash for absolute path)
+		return fmt.Sprintf("unix://%s", address)
+	}
+	
+	// For TCP addresses, format as https://host:port
+	return fmt.Sprintf("https://%s:%d", address, port)
+}
+
 // FormatDockerHostAddress formats the Docker host address based on the current host index.
 func FormatDockerHostAddress(dockerHost types.DockerAPIAddresses, configAPI *apiContext.APIConfig) (string, error) {
 	if len(dockerHost.HostList) == 0 {
@@ -192,7 +209,8 @@ func FormatDockerHostAddress(dockerHost types.DockerAPIAddresses, configAPI *api
 	}
 	hostIndex := dockerHost.CurrentHostIndex % len(dockerHost.HostList)
 	host := dockerHost.HostList[hostIndex]
-	return fmt.Sprintf("https://%s:%d", host, configAPI.DockerHostsConfig.DockerAPIPort), nil
+	
+	return formatDockerHost(host, configAPI.DockerHostsConfig.DockerAPIPort), nil
 }
 
 func checkSecurityTest(securityTestName string, configAPI *apiContext.APIConfig) error {

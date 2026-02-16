@@ -1,11 +1,13 @@
 package securitytest
 
 import (
+	"fmt"
 	"sync"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
 	"github.com/huskyci-org/huskyCI/api/log"
 	"github.com/huskyci-org/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/util"
 )
 
 // RunAllInfo store all scans results of an Analysis
@@ -109,6 +111,16 @@ func (results *RunAllInfo) runGenericScans(enryScan SecTestScanInfo) error {
 	}
 
 	for genericTestIndex := range genericTests {
+		genericTest := &genericTests[genericTestIndex]
+		
+		// Skip gitauthors for file:// URLs since extracted directories don't have git history
+		if genericTest.Name == "gitauthors" && util.IsFileURL(enryScan.URL) {
+			log.Info("runGenericScans", "SECURITYTEST", 16, fmt.Sprintf("Skipping gitauthors for file:// URL: %s (extracted directories don't have git history)", enryScan.URL))
+			// Set empty authors for file:// URLs
+			results.CommitAuthors = []string{}
+			continue
+		}
+		
 		wg.Add(1)
 		go func(genericTest *types.SecurityTest) {
 			defer wg.Done()
@@ -137,7 +149,7 @@ func (results *RunAllInfo) runGenericScans(enryScan SecTestScanInfo) error {
 			} else if genericTest.Name == "gitleaks" {
 				results.setVulns(newGenericScan)
 			}
-		}(&genericTests[genericTestIndex])
+		}(genericTest)
 	}
 
 	go func() {
