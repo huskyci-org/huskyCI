@@ -189,3 +189,11 @@ func AppendIfMissing(slice []string, s string) []string {
 	}
 	return append(slice, s)
 }
+
+// NormalizeURL removes trailing slashes from a URL
+func NormalizeURL(url string) string {
+	if strings.HasSuffix(url, "/") {
+		return url[:len(url)-1]
+	}
+	return url
+}
