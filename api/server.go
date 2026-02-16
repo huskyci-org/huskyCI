@@ -72,6 +72,7 @@ func main() {
 
 	// analysis routes
 	echoInstance.POST("/analysis", routes.ReceiveRequest)
+	echoInstance.POST("/analysis/upload", routes.UploadZip)
 	echoInstance.GET("/analysis/:id", routes.GetAnalysis)
 	// echoInstance.PUT("/analysis/:id", routes.UpdateAnalysis)
 	// echoInstance.DELETE("/analysis/:id", routes.DeleteAnalysis)
