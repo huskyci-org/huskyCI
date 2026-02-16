@@ -15,6 +15,8 @@ var MsgCode = map[int]string{
 	19: "SecurityTest upserted in MondoDB: ",
 	20: "Default User found in MongoDB.",
 	24: "URL received to generate a new token: ",
+	25: "Zip file upload request received: ",
+	26: "Zip file uploaded successfully: ",
 
 	// HuskyCI API warnings
 	101: "Analysis started: ",
