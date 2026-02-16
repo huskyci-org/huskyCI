@@ -35,8 +35,9 @@ The E2E tests verify:
 
 3. **Wait for services to be ready** (usually takes 1-2 minutes):
    ```bash
-   # Check MongoDB
-   docker exec huskyCI_MongoDB mongosh --eval "db.adminCommand('ping')"
+   # Check MongoDB (MongoDB 4.4 uses 'mongo' command, not 'mongosh')
+   # Simple check - just verify the container is responding
+   docker exec huskyCI_MongoDB mongo --eval "db.adminCommand('ping')" --quiet
    
    # Check API
    curl http://localhost:8888/healthcheck
@@ -79,7 +80,7 @@ You can customize the test behavior by modifying these variables in `run-e2e-tes
 
 - Ensure Docker Compose services are running: `docker-compose -f deployments/docker-compose.yml ps`
 - Check if the API is accessible: `curl http://localhost:8888/healthcheck`
-- Verify MongoDB is healthy: `docker exec huskyCI_MongoDB mongosh --eval "db.adminCommand('ping')"`
+- Verify MongoDB is healthy: `docker exec huskyCI_MongoDB mongo --eval "db.adminCommand('ping')" --quiet`
 
 ### Tests timeout waiting for analysis
 
