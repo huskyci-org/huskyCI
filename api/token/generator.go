@@ -12,7 +12,12 @@ import (
 )
 
 // ValidateURL validates if an URL is malicious or not.
+// If the URL is empty, it returns an empty string without error to allow generic tokens.
 func (tC *TCaller) ValidateURL(url string) (string, error) {
+	// Allow empty URL for generic tokens that work with any repository
+	if url == "" {
+		return "", nil
+	}
 	return util.CheckMaliciousRepoURL(url)
 }
 
@@ -44,7 +49,8 @@ func (tC *TCaller) FindAccessToken(ID string) (types.DBToken, error) {
 	return apiContext.APIConfiguration.DBInstance.FindOneDBAccessToken(aTokenQuery)
 }
 
-// FindRepoURL checks if a Access TOken is present based on a given URL.
+// FindRepoURL checks if an Access Token is present based on a given URL.
+// If repositoryURL is empty, it searches for generic tokens (tokens with empty URL).
 func (tC *TCaller) FindRepoURL(repositoryURL string) error {
 	repoQuery := map[string]interface{}{"repositoryURL": repositoryURL, "isValid": true}
 	_, err := apiContext.APIConfiguration.DBInstance.FindOneDBAccessToken(repoQuery)

@@ -24,7 +24,9 @@ func init() {
 	}
 }
 
-// HandleToken generate an access token for a specific repository
+// HandleToken generate an access token for a specific repository or a generic token.
+// If repositoryURL is provided, the token will be scoped to that repository.
+// If repositoryURL is empty or omitted, a generic token will be created that works with any repository.
 func HandleToken(c echo.Context) error {
 	repoRequest := types.TokenRequest{}
 	if err := c.Bind(&repoRequest); err != nil {
@@ -32,10 +34,18 @@ func HandleToken(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"success": false,
 			"error":   "invalid request format",
-			"message": "The request body must be valid JSON with a 'repositoryURL' field. Example: {\"repositoryURL\": \"https://github.com/user/repo.git\"}",
+			"message": "The request body must be valid JSON. Provide 'repositoryURL' for a repository-specific token, or omit it for a generic token. Example: {\"repositoryURL\": \"https://github.com/user/repo.git\"} or {}",
 		})
 	}
-	log.Info("HandleToken", "TOKEN", 24, repoRequest.RepositoryURL)
+	
+	tokenType := "repository-specific"
+	if repoRequest.RepositoryURL == "" {
+		tokenType = "generic"
+		log.Info("HandleToken", "TOKEN", 24, "Generating generic token (no repository URL)")
+	} else {
+		log.Info("HandleToken", "TOKEN", 24, repoRequest.RepositoryURL)
+	}
+	
 	accessToken, err := tokenHandler.GenerateAccessToken(repoRequest)
 	if err != nil {
 		log.Error("HandleToken ", "TOKEN", 1026, err)
@@ -45,10 +55,19 @@ func HandleToken(c echo.Context) error {
 			"message": "Failed to generate access token. Please verify the repository URL and try again.",
 		})
 	}
+	
+	var message string
+	if repoRequest.RepositoryURL != "" {
+		message = fmt.Sprintf("Token generated successfully for repository: %s", repoRequest.RepositoryURL)
+	} else {
+		message = "Generic token generated successfully. This token can be used with any repository."
+	}
+	
 	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"success":    true,
 		"huskytoken": accessToken,
-		"message":    fmt.Sprintf("Token generated successfully for repository: %s", repoRequest.RepositoryURL),
+		"tokenType":  tokenType,
+		"message":    message,
 	})
 }
 
