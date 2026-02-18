@@ -3,8 +3,8 @@ package util_test
 import (
 	"errors"
 
-	"github.com/globocom/glbgelf"
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
+	"github.com/huskyci-org/huskyCI/api/log"
 	apiUtil "github.com/huskyci-org/huskyCI/api/util/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +33,7 @@ var checkHuskyTests = []CheckHuskyData{
 }
 
 var _ = Describe("Util API", func() {
-	glbgelf.InitLogger("", "huskytest", "", true, "UDP")
+	log.InitLog(true, "", "", "huskytest", "huskytest")
 	Describe("CheckHuskyRequirements", func() {
 		Context("When checkEnvVars returns an error", func() {
 			fakeCheck := &apiUtil.FakeCheck{
