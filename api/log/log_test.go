@@ -1,8 +1,8 @@
 package log_test
 
 import (
-	"errors"
-	"reflect"
+	"bytes"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -22,153 +22,96 @@ func TestInitLog(t *testing.T) {
 
 	log.InitLog(true, "", "", "log_test", "log_test")
 
-	if log.Logger == nil {
-		t.Error("expected logger to be initialized, but it wasn't")
-		return
+	if log.DefaultLogger() == nil {
+		t.Error("expected default logger to be initialized, but it wasn't")
 	}
 }
 
 func TestLog(t *testing.T) {
-
 	testCases := []struct {
-		logger interface {
-			SendLog(extra map[string]interface{}, loglevel string, messages ...interface{}) error
-		}
-		name         string
-		wantAction   string
-		wantInfo     string
-		wantMsgCode  int
-		wantLogLevel string
-		wantMessages []string
-		logFunc      func(action, info string, msgCode int, message ...interface{})
-		err          error
-		wantErr      string
+		name       string
+		action     string
+		info       string
+		msgCode    int
+		message    []interface{}
+		logFunc    func(action, info string, msgCode int, message ...interface{})
+		wantLevel  string
+		wantMsgSub string
 	}{
 		{
-			name:         "Testing log.Info",
-			logger:       &stubLogger{},
-			wantAction:   "action",
-			wantInfo:     "info",
-			wantMsgCode:  11,
-			wantLogLevel: "INFO",
-			wantMessages: []string{"got some info!"},
-			logFunc:      log.Info,
+			name:       "Info",
+			action:     "action",
+			info:       "info",
+			msgCode:    11,
+			message:    []interface{}{"got some info!"},
+			logFunc:    log.Info,
+			wantLevel:  "level=INFO",
+			wantMsgSub: "Starting HuskyCI. got some info!",
 		},
 		{
-			name:         "Testing log.Error",
-			logger:       &stubLogger{},
-			wantAction:   "action",
-			wantInfo:     "err",
-			wantMsgCode:  11,
-			wantLogLevel: "ERROR",
-			wantMessages: []string{"got some error!"},
-			logFunc:      log.Error,
+			name:       "Warning",
+			action:     "action",
+			info:       "warn",
+			msgCode:    11,
+			message:    []interface{}{"got some warning!"},
+			logFunc:    log.Warning,
+			wantLevel:  "level=WARN",
+			wantMsgSub: "Starting HuskyCI. got some warning!",
 		},
 		{
-			name:         "Testing log.Error fail",
-			logger:       &stubLogger{err: errors.New("server is down!")},
-			wantAction:   "action",
-			wantInfo:     "err",
-			wantMsgCode:  11,
-			wantLogLevel: "ERROR",
-			wantMessages: []string{"got some error!"},
-			logFunc:      log.Error,
-			wantErr:      "server is down!",
+			name:       "Error",
+			action:     "action",
+			info:       "err",
+			msgCode:    11,
+			message:    []interface{}{"got some error!"},
+			logFunc:    log.Error,
+			wantLevel:  "level=ERROR",
+			wantMsgSub: "Starting HuskyCI. got some error!",
 		},
 		{
-			name:         "Testing log.Warning",
-			logger:       &stubLogger{},
-			wantAction:   "action",
-			wantInfo:     "err",
-			wantMsgCode:  11,
-			wantLogLevel: "WARNING",
-			wantMessages: []string{"got some warning!"},
-			logFunc:      log.Warning,
-		},
-		{
-			name:         "Testing log.Warning fail",
-			logger:       &stubLogger{err: errors.New("server is down!")},
-			wantAction:   "action",
-			wantInfo:     "err",
-			wantMsgCode:  11,
-			wantLogLevel: "WARNING",
-			wantMessages: []string{"got some warning!"},
-			logFunc:      log.Warning,
-			wantErr:      "server is down!",
-		},
-		{
-			name:         "Testing 'log server is down!'",
-			logger:       &stubLogger{},
-			wantAction:   "action",
-			wantInfo:     "info",
-			wantMsgCode:  11,
-			wantLogLevel: "INFO",
-			wantMessages: []string{"got some info!"},
-			logFunc:      log.Info,
-			err:          errors.New("server is down!"),
-			wantErr:      "server is down!",
-		},
-		{
-			name:         "Testing Send errored out",
-			logger:       &stubLogger{err: errors.New("server is down!")},
-			wantAction:   "action",
-			wantInfo:     "info",
-			wantMsgCode:  11,
-			wantLogLevel: "INFO",
-			wantMessages: []string{"got some info!"},
-			logFunc:      log.Info,
-			wantErr:      "server is down!",
+			name:       "Info without variadic message",
+			action:     "main",
+			info:       "SERVER",
+			msgCode:    11,
+			message:    nil,
+			logFunc:    log.Info,
+			wantLevel:  "level=INFO",
+			wantMsgSub: "Starting HuskyCI.",
 		},
 	}
 
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			log.Logger = testCase.logger
-			testCase.logFunc(testCase.wantAction, testCase.wantInfo, testCase.wantMsgCode, testCase.wantMessages)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			h := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})
+			log.SetLogger(slog.New(h))
 
-			stub := testCase.logger.(*stubLogger)
-			extra := stub.calledWith["extra"].(map[string]interface{})
-			if got, ok := extra["action"]; !ok || got != testCase.wantAction {
-				t.Errorf("in action key, we expected %s; but got %s", testCase.wantAction, got)
-				return
-			}
-			if got, ok := extra["info"]; !ok || got != testCase.wantInfo {
-				t.Errorf("in info key, we expected %s; but got %s", testCase.wantInfo, got)
-				return
-			}
-			gotLogLevel := stub.calledWith["loglevel"]
-			if gotLogLevel != testCase.wantLogLevel {
-				t.Errorf("in loglevel, we expected %s; but got %s", testCase.wantLogLevel, gotLogLevel)
-				return
-			}
-			gotMessages := stub.calledWith["messages"]
-			if reflect.DeepEqual(gotMessages, testCase.wantMessages) {
-				t.Errorf("in messages, we expected %s; but got %s", strings.Join(testCase.wantMessages, " "), strings.Join(gotMessages.([]string), " "))
-				return
+			if tc.message != nil {
+				tc.logFunc(tc.action, tc.info, tc.msgCode, tc.message...)
+			} else {
+				tc.logFunc(tc.action, tc.info, tc.msgCode)
 			}
 
-			var err error
-			if testCase.err != nil {
-				err = testCase.err
-			} else if stub.err != nil {
-				err = stub.err
-			}
-			if err != nil && err.Error() != testCase.wantErr {
-				t.Errorf("in err case, we expected %s; but got %s", testCase.err.Error(), testCase.wantErr)
-				return
-			}
-
+			assertLogOutput(t, buf.String(), tc.wantLevel, tc.wantMsgSub, tc.action, tc.info)
 		})
 	}
-
 }
 
-type stubLogger struct {
-	calledWith map[string]interface{}
-	err        error
-}
-
-func (s *stubLogger) SendLog(extra map[string]interface{}, loglevel string, messages ...interface{}) error {
-	s.calledWith = map[string]interface{}{"extra": extra, "loglevel": loglevel, "messages": messages}
-	return s.err
+func assertLogOutput(t *testing.T, out, wantLevel, wantMsgSub, action, info string) {
+	t.Helper()
+	checks := []struct {
+		contains string
+		desc     string
+	}{
+		{wantLevel, "level"},
+		{wantMsgSub, "message"},
+		{"action=" + action, "action"},
+		{"info=" + info, "info"},
+		{"msg_code=11", "msg_code"},
+	}
+	for _, c := range checks {
+		if !strings.Contains(out, c.contains) {
+			t.Errorf("log output should contain %s %q; got:\n%s", c.desc, c.contains, out)
+		}
+	}
 }
