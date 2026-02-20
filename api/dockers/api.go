@@ -42,41 +42,83 @@ func NewDocker(dockerHost string) (*Docker, error) {
 		return nil, err
 	}
 
-	// env vars needed by docker/docker library to create a NewEnvClient:
+	// When the caller passed a unix/path-like host (e.g. from DB), use configured TCP host so Docker-in-Docker works.
+	// Fixes "lookup /var/run/docker.sock: no such host". Prefer config, fall back to env so it works even if config wasn't loaded with env.
+	isPathLike := strings.HasPrefix(dockerHost, "unix://") || strings.HasPrefix(dockerHost, "/") ||
+		strings.Contains(dockerHost, "%2Fvar%2Frun") || strings.Contains(dockerHost, "/var/run/") ||
+		strings.Contains(dockerHost, "docker.sock")
+	if isPathLike {
+		configAddr := ""
+		configPort := 2376
+		if configAPI.DockerHostsConfig != nil {
+			configAddr = strings.TrimSpace(configAPI.DockerHostsConfig.Address)
+			configPort = configAPI.DockerHostsConfig.DockerAPIPort
+		}
+		if configAddr == "" {
+			configAddr = strings.TrimSpace(os.Getenv("HUSKYCI_DOCKERAPI_ADDR"))
+			if p := os.Getenv("HUSKYCI_DOCKERAPI_PORT"); p != "" {
+				if port, err := strconv.Atoi(p); err == nil {
+					configPort = port
+				}
+			}
+		}
+		if configAddr != "" && !strings.HasPrefix(configAddr, "/") && !strings.HasPrefix(configAddr, "unix://") {
+			dockerHost = fmt.Sprintf("https://%s:%d", configAddr, configPort)
+		}
+	}
+	// If host is still empty or invalid (e.g. "https://:2376"), use env so we never pass empty to WithHost
+	if dockerHost == "" || strings.HasPrefix(dockerHost, "https://:") || strings.HasPrefix(dockerHost, "http://:") {
+		configAddr := strings.TrimSpace(os.Getenv("HUSKYCI_DOCKERAPI_ADDR"))
+		configPort := 2376
+		if p := os.Getenv("HUSKYCI_DOCKERAPI_PORT"); p != "" {
+			if port, err := strconv.Atoi(p); err == nil {
+				configPort = port
+			}
+		}
+		if configAddr != "" {
+			dockerHost = fmt.Sprintf("https://%s:%d", configAddr, configPort)
+		}
+	}
+	if dockerHost == "" {
+		log.Error(logActionNew, logInfoAPI, 3002, fmt.Errorf("unable to parse docker host: Docker host is empty and HUSKYCI_DOCKERAPI_ADDR is not set"))
+		return nil, fmt.Errorf("Docker host is empty; set HUSKYCI_DOCKERAPI_ADDR (e.g. dockerapi)")
+	}
+
+	// Set env vars so WithTLSClientConfigFromEnv can read them; do not rely on DOCKER_HOST for client creation
+	// to avoid races when multiple goroutines call NewDocker (each gets explicit host via WithHost).
 	err = os.Setenv("DOCKER_HOST", dockerHost)
 	if err != nil {
 		log.Error(logActionNew, logInfoAPI, 3001, err)
 		return nil, err
 	}
-
-	// Only set TLS-related environment variables for TCP/HTTPS connections, not Unix sockets
 	isUnixSocket := strings.HasPrefix(dockerHost, "unix://")
-	if !isUnixSocket {
+	if !isUnixSocket && configAPI.DockerHostsConfig != nil {
 		err = os.Setenv("DOCKER_CERT_PATH", configAPI.DockerHostsConfig.PathCertificate)
 		if err != nil {
 			log.Error(logActionNew, logInfoAPI, 3019, err)
 			return nil, err
 		}
-
-		tlsVerify := strconv.Itoa(configAPI.DockerHostsConfig.TLSVerify)
-		err = os.Setenv("DOCKER_TLS_VERIFY", tlsVerify)
+		err = os.Setenv("DOCKER_TLS_VERIFY", strconv.Itoa(configAPI.DockerHostsConfig.TLSVerify))
 		if err != nil {
 			log.Error(logActionNew, logInfoAPI, 3020, err)
 			return nil, err
 		}
-	} else {
-		// Clear TLS-related environment variables for Unix socket connections
+	} else if isUnixSocket {
 		os.Unsetenv("DOCKER_CERT_PATH")
 		os.Unsetenv("DOCKER_TLS_VERIFY")
 	}
 
-	client, err := client.NewEnvClient()
+	opts := []client.Opt{client.WithHost(dockerHost), client.WithAPIVersionNegotiation()}
+	if !isUnixSocket {
+		opts = append(opts, client.WithTLSClientConfigFromEnv())
+	}
+	cli, err := client.NewClientWithOpts(opts...)
 	if err != nil {
 		log.Error(logActionNew, logInfoAPI, 3002, err)
 		return nil, err
 	}
 	docker := &Docker{
-		client: client,
+		client: cli,
 	}
 	return docker, nil
 }
@@ -341,6 +383,7 @@ func (d Docker) PullImage(image string) error {
 }
 
 // ImageIsLoaded returns a bool if a a docker image is loaded or not.
+// On Docker API errors (e.g. wrong DOCKER_HOST), it logs and returns false instead of panicking.
 func (d Docker) ImageIsLoaded(image string) bool {
 	args := filters.NewArgs()
 	args.Add("reference", image)
@@ -350,7 +393,7 @@ func (d Docker) ImageIsLoaded(image string) bool {
 	result, err := d.client.ImageList(ctx, options)
 	if err != nil {
 		log.Error("ImageIsLoaded", logInfoAPI, 3010, err)
-		panic(err)
+		return false
 	}
 
 	return len(result) != 0
