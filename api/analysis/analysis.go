@@ -20,7 +20,6 @@ const logInfoAnalysis = "ANALYSIS"
 
 // StartAnalysis starts the analysis given a RID and a repository.
 func StartAnalysis(RID string, repository types.Repository) {
-
 	// step 1: create a new analysis into MongoDB based on repository received
 	if err := registerNewAnalysis(RID, repository); err != nil {
 		return

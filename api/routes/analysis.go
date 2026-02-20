@@ -88,12 +88,7 @@ func GetAnalysis(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, reply)
 	}
 
-	// Log the successful retrieval of analysis data
 	log.Info(logActionGetAnalysis, logInfoAnalysis, 113, "Analysis data retrieved successfully for RID:", RID)
-
-	// Add logging to capture the analysis result being returned
-	log.Info(logActionGetAnalysis, logInfoAnalysis, 113, "Analysis result:", analysisResult)
-
 	return c.JSON(http.StatusOK, analysisResult)
 }
 
@@ -381,7 +376,6 @@ func ReceiveRequest(c echo.Context) error {
 			log.Info(logActionReceiveRequest, logInfoAnalysis, 16, fmt.Sprintf("EnryOutput preview: %s", preview))
 		}
 	}
-	
 	go analysis.StartAnalysis(RID, repository)
 	reply := map[string]interface{}{
 		"success": true,
