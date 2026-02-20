@@ -15,6 +15,12 @@ The problems addressed until now were:
 - Gitlab only integration configuration - Set up a fully functioning [Github Action workflow file]()
 - Outdated tests - Every test container was updated and a new dockerhub repository was created for each one of them (also a [new organization](https://hub.docker.com/orgs/huskyciorg/repositories) was created)
 
+### Recent improvements
+
+- **Docker-in-Docker / Docker Compose**: API uses `HUSKYCI_DOCKERAPI_ADDR` (and optional `HUSKYCI_DOCKERAPI_PORT`) so security tests run in the correct Docker daemon; avoids "lookup /var/run/docker.sock" when the DB or config had a Unix socket path.
+- **File upload (file://) analysis**: Robust zip extraction in the Docker API container (retries for large uploads), gitauthors skipped for file:// URLs, and resilient handling of empty/invalid tool output so analyses can complete.
+- **Stability**: Buffered error channels in security test orchestration to avoid "send on closed channel" panics; Docker client created with explicit host to avoid races when multiple tests run in parallel.
+
 ### Ongoing activities
 
 - Fix Sonarqube integration file output of some specific tests (like npmaudit, which has only vulnerabilities based on one file and the filepath of the analysed file comes as a placeholder)
