@@ -1,4 +1,8 @@
 {
     "snyk.advanced.autoSelectOrganization": true,
-    "snyk.advanced.organization": "d5b6d49b-3d94-48d8-8eb5-8966d024f697"
+    "snyk.advanced.organization": "d5b6d49b-3d94-48d8-8eb5-8966d024f697",
+    "sonarlint.connectedMode.project": {
+        "connectionId": "https-sonarqube-k8s-dc-anotaai-security-com",
+        "projectKey": "githubanotaai_huskyci-api_e14eda4f-887b-4086-adeb-b5613923c28c"
+    }
 }
