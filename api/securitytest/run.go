@@ -2,6 +2,7 @@ package securitytest
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
@@ -37,7 +38,8 @@ const securitycodescan = "securitycodescan"
 func (results *RunAllInfo) Start(enryScan SecTestScanInfo) error {
 
 	results.Codes = enryScan.Codes
-	errChan := make(chan error)
+	// Buffered so both goroutines can send without blocking; avoids "send on closed channel" when both error
+	errChan := make(chan error, 2)
 	waitChan := make(chan struct{})
 	syncChan := make(chan struct{})
 
@@ -97,7 +99,12 @@ func (results *RunAllInfo) Start(enryScan SecTestScanInfo) error {
 
 func (results *RunAllInfo) runGenericScans(enryScan SecTestScanInfo) error {
 
-	errChan := make(chan error)
+	genericTests, err := getAllDefaultSecurityTests("Generic", "")
+	if err != nil {
+		return err
+	}
+	// Buffered so multiple goroutines can send without blocking; avoids "send on closed channel"
+	errChan := make(chan error, len(genericTests))
 	waitChan := make(chan struct{})
 	syncChan := make(chan struct{})
 
@@ -105,16 +112,11 @@ func (results *RunAllInfo) runGenericScans(enryScan SecTestScanInfo) error {
 
 	defer close(errChan)
 
-	genericTests, err := getAllDefaultSecurityTests("Generic", "")
-	if err != nil {
-		return err
-	}
-
 	for genericTestIndex := range genericTests {
 		genericTest := &genericTests[genericTestIndex]
 		
 		// Skip gitauthors for file:// URLs since extracted directories don't have git history
-		if genericTest.Name == "gitauthors" && util.IsFileURL(enryScan.URL) {
+		if strings.EqualFold(genericTest.Name, "gitauthors") && util.IsFileURL(enryScan.URL) {
 			log.Info("runGenericScans", "SECURITYTEST", 16, fmt.Sprintf("Skipping gitauthors for file:// URL: %s (extracted directories don't have git history)", enryScan.URL))
 			// Set empty authors for file:// URLs
 			results.CommitAuthors = []string{}
@@ -144,7 +146,7 @@ func (results *RunAllInfo) runGenericScans(enryScan SecTestScanInfo) error {
 				}
 			}
 			results.Containers = append(results.Containers, newGenericScan.Container)
-			if genericTest.Name == "gitauthors" {
+			if strings.EqualFold(genericTest.Name, "gitauthors") {
 				results.CommitAuthors = newGenericScan.CommitAuthors.Authors
 			} else if genericTest.Name == "gitleaks" {
 				results.setVulns(newGenericScan)
@@ -168,14 +170,6 @@ func (results *RunAllInfo) runGenericScans(enryScan SecTestScanInfo) error {
 
 func (results *RunAllInfo) runLanguageScans(enryScan SecTestScanInfo) error {
 
-	errChan := make(chan error)
-	waitChan := make(chan struct{})
-	syncChan := make(chan struct{})
-
-	var wg sync.WaitGroup
-
-	defer close(errChan)
-
 	languageTests := []types.SecurityTest{}
 	for _, code := range enryScan.Codes {
 		codeTests, err := getAllDefaultSecurityTests("Language", code.Language)
@@ -184,6 +178,14 @@ func (results *RunAllInfo) runLanguageScans(enryScan SecTestScanInfo) error {
 		}
 		languageTests = append(languageTests, codeTests...)
 	}
+	// Buffered so multiple goroutines can send without blocking; avoids "send on closed channel"
+	errChan := make(chan error, len(languageTests))
+	waitChan := make(chan struct{})
+	syncChan := make(chan struct{})
+
+	var wg sync.WaitGroup
+
+	defer close(errChan)
 
 	for languageTestIndex := range languageTests {
 		wg.Add(1)
