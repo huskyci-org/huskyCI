@@ -53,6 +53,21 @@ The E2E tests verify:
    make compose-down
    ```
 
+## Running E2E Tests on Feature Branches (before merge to main)
+
+To run E2E on each feature branch before merging to `main`:
+
+1. **Start Docker** (required for compose and E2E).
+2. From the repo root:
+   ```bash
+   ./tests/e2e/run-e2e-per-branch.sh
+   ```
+   By default this runs E2E on `feat/multi-platform-docker-builds` and `feat/setup-wizard-command` (branches that build the full API). If the API does not build on a branch (e.g. `feat/zip-upload-analysis`, which is API-only and depends on `main`), that branch is skipped; validate it by merging into `feat/setup-wizard-command` (or `main`) and running E2E there.
+3. To run E2E on specific branches:
+   ```bash
+   ./tests/e2e/run-e2e-per-branch.sh feat/setup-wizard-command
+   ```
+
 ## Running E2E Tests in CI/CD
 
 The E2E tests are automatically run in GitHub Actions on:
