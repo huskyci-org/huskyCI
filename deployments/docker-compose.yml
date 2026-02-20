@@ -1,4 +1,3 @@
-version: '3.8'
 services:
 
     dockerapi:
@@ -15,6 +14,12 @@ services:
             - /tmp/huskyci-zips-host:/tmp/huskyci-zips
         networks:
             - huskyCI_net
+        healthcheck:
+            test: ["CMD", "docker", "info"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+            start_period: 15s
 
     api:
         container_name: huskyCI_API
@@ -50,7 +55,7 @@ services:
             mongodb:
                 condition: service_healthy
             dockerapi:
-                condition: service_started
+                condition: service_healthy
         external_links:
             - dockerapi:dockerapi
 

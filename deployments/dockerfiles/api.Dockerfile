@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine as builder
+FROM golang:1.24-alpine AS builder
 
 ADD api/ /go/src/github.com/huskyci-org/huskyCI/api/
 WORKDIR /go/src/github.com/huskyci-org/huskyCI/api/
