@@ -56,6 +56,8 @@ This is the easiest way to deploy the full environment with all dependencies.
 - MongoDB: Same credentials
 - API Endpoint: `http://localhost:8888`
 
+**Docker-in-Docker (Docker Compose):** When the API runs inside a container, it must talk to the Docker API service (e.g. `dockerapi`) over TCP, not the host’s Unix socket. The API uses `HUSKYCI_DOCKERAPI_ADDR` (e.g. `dockerapi`) and `HUSKYCI_DOCKERAPI_PORT` (default `2376`) to build the Docker host URL. If the database has a Unix socket path stored, the API falls back to these environment variables so security test containers run in the correct Docker daemon.
+
 ### Option 2: Direct Go Execution
 
 For development/testing without Docker Compose, you can run the API server directly.
@@ -77,7 +79,8 @@ For development/testing without Docker Compose, you can run the API server direc
    export HUSKYCI_API_DEFAULT_PASSWORD="huskyCIPassword"
    export HUSKYCI_API_ALLOW_ORIGIN_CORS="*"
    export HUSKYCI_INFRASTRUCTURE_USE="docker"
-   export HUSKYCI_DOCKERAPI_ADDR="localhost:2376"  # or unix:///var/run/docker.sock
+   export HUSKYCI_DOCKERAPI_ADDR="localhost"       # or hostname of Docker API (use "dockerapi" when API runs in Docker Compose)
+   export HUSKYCI_DOCKERAPI_PORT="2376"            # optional; default 2376
    export HUSKYCI_DOCKERAPI_TLS_VERIFY="0"
    export HUSKYCI_DOCKERAPI_CERT_PATH="/path/to/certs"  # if using TLS
    ```
@@ -92,6 +95,8 @@ For development/testing without Docker Compose, you can run the API server direc
    cd api
    ./huskyci-api-bin
    ```
+
+   On macOS, if you see "could not be run by the operating system" or an interpreter-directive error, the binary may have quarantine attributes; clear them with: `xattr -c api/huskyci-api-bin` (or run `make build-api` again, which clears them on Darwin).
 
    Or run directly with Go:
    ```bash
@@ -175,10 +180,12 @@ This command tests:
 
 ### Run CLI Analysis Tests
 
-**Test 1: Analyze a local directory**:
+**Test 1: Analyze a local directory** (file upload / file:// analysis):
 ```bash
 ./cli/huskyci-cli-bin run ./path/to/your/project
 ```
+
+The CLI compresses the directory, uploads it to the API, and starts an analysis with a `file://` URL. The API extracts the zip in the API container and in the Docker API container so security test containers can read the code. Gitauthors is skipped for file:// (no git history). Enry language detection can be done locally by the CLI and sent in the request to avoid running Enry in Docker.
 
 **Test 2: Run E2E tests** (full integration test):
 ```bash
@@ -221,9 +228,17 @@ The E2E test script (`tests/e2e/run-e2e-tests.sh`) performs:
 - Ensure token is valid (regenerate if needed)
 
 **Analysis fails:**
-- Check Docker API is accessible
-- Verify security test containers are available
-- Check API logs for detailed error messages
+- Check Docker API is accessible (with Docker Compose, the API uses `HUSKYCI_DOCKERAPI_ADDR=dockerapi` to reach the Docker-in-Docker service).
+- Verify security test containers are available (images are pulled on first use).
+- Check API logs for detailed error messages.
+
+**"lookup /var/run/docker.sock: no such host" or "unable to parse docker host":**
+- With Docker Compose, the API must use the `dockerapi` service, not the host’s Unix socket. Ensure `HUSKYCI_DOCKERAPI_ADDR` is set (e.g. `dockerapi`) in the API container. The API prefers this over the database value when it’s a TCP hostname.
+- If you run the API outside Docker, set `HUSKYCI_DOCKERAPI_ADDR` to your Docker host (e.g. `localhost` or a TCP address) and optionally `HUSKYCI_DOCKERAPI_PORT` (default `2376`).
+
+**"unexpected end of JSON input" or "security tool produced no valid JSON":**
+- For **file://** (zip upload) analyses, the zip is extracted in both the API container and the Docker API container so security tests can read the code. If extraction in the Docker API fails (e.g. zip not visible yet), tools may run on an empty workspace and produce no valid JSON. The API retries extraction for up to ~15 seconds. For very large uploads, ensure the shared volume (e.g. `/tmp/huskyci-zips-host`) is the same for API and Docker API.
+- **Gitauthors** for file:// URLs: the API skips gitauthors when the repository URL is file:// (no git history). If gitauthors still runs and returns empty/invalid JSON, it is treated as “no authors” and does not fail the analysis.
 
 **CLI "zip file not found" error when running `huskyci run ./`:**
 - This error occurs when the zip file upload succeeds but the API cannot find it when starting analysis
