@@ -122,12 +122,13 @@ func ExtractZipInDockerAPI(dockerHost, zipPath, destDir string) error {
 	destDirName := filepath.Base(destDir)
 	// Add retry logic to wait for file to be visible to dockerapi's Docker daemon
 	// Use a loop with small delays to check if file exists before attempting extraction
+	// Retry up to 30 times with 0.5s delay (15s total) so large uploads are visible to dockerapi before extraction
 	extractCmd := fmt.Sprintf("sh -c 'apk add --no-cache unzip > /dev/null 2>&1 && cd /workspace && "+
-		"for i in $(seq 1 10); do "+
+		"for i in $(seq 1 30); do "+
 		"if [ -f %s ]; then "+
 		"mkdir -p %s && unzip -q -o %s -d %s && echo \"Extraction successful\" && exit 0; "+
 		"fi; "+
-		"sleep 0.2; "+
+		"sleep 0.5; "+
 		"done; "+
 		"echo \"ERROR: Zip file %s not found in /workspace after retries\"; "+
 		"ls -la /workspace 2>&1; "+
