@@ -2,6 +2,7 @@ package securitytest
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -113,7 +114,19 @@ func (scanInfo *SecTestScanInfo) dockerRun(timeOutInSeconds int) error {
 	cmd := util.HandleCmd(scanInfo.URL, scanInfo.Branch, scanInfo.Container.SecurityTest.Cmd)
 	cmd = util.HandleGitURLSubstitution(cmd)
 	finalCMD := util.HandlePrivateSSHKey(cmd)
-	CID, cOutput, err := huskydocker.DockerRun(image, imageTag, finalCMD, scanInfo.DockerHost, timeOutInSeconds)
+	
+	// Check if this is a file:// URL and get the volume path
+	var volumePath string
+	if util.IsFileURL(scanInfo.URL) {
+		RID := util.ExtractRIDFromFileURL(scanInfo.URL)
+		if RID != "" {
+			volumePath = util.GetExtractedDir(RID)
+			log.Info("dockerRun", "SECURITYTEST", 16, fmt.Sprintf("File:// URL detected, RID: %s, Volume path: %s", RID, volumePath))
+			log.Info("dockerRun", "SECURITYTEST", 16, fmt.Sprintf("Command after HandleCmd: %s", cmd))
+		}
+	}
+	
+	CID, cOutput, err := huskydocker.DockerRunWithVolume(image, imageTag, finalCMD, scanInfo.DockerHost, volumePath, timeOutInSeconds)
 	if err != nil {
 		return err
 	}
@@ -128,8 +141,18 @@ func (scanInfo *SecTestScanInfo) kubeRun(timeOutInSeconds int) error {
 	cmd := util.HandleCmd(scanInfo.URL, scanInfo.Branch, scanInfo.Container.SecurityTest.Cmd)
 	cmd = util.HandleGitURLSubstitution(cmd)
 	finalCMD := util.HandlePrivateSSHKey(cmd)
+	
+	// Check if this is a file:// URL and get the volume path
+	var volumePath string
+	if util.IsFileURL(scanInfo.URL) {
+		RID := util.ExtractRIDFromFileURL(scanInfo.URL)
+		if RID != "" {
+			volumePath = util.GetExtractedDir(RID)
+		}
+	}
+	
 	podSchedulingTimeoutInSeconds := apiContext.APIConfiguration.KubernetesConfig.PodSchedulingTimeout
-	CID, cOutput, err := huskykube.KubeRun(image, imageTag, finalCMD, scanInfo.SecurityTestName, scanInfo.RID, podSchedulingTimeoutInSeconds, timeOutInSeconds)
+	CID, cOutput, err := huskykube.KubeRunWithVolume(image, imageTag, finalCMD, scanInfo.SecurityTestName, scanInfo.RID, volumePath, podSchedulingTimeoutInSeconds, timeOutInSeconds)
 	if err != nil {
 		return err
 	}

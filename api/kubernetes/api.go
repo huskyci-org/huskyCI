@@ -61,8 +61,83 @@ func NewKubernetes() (*Kubernetes, error) {
 
 // CreatePod creates a new Kubernetes pod with the specified image, command, and configuration.
 func (k Kubernetes) CreatePod(image, cmd, podName, securityTestName string) (string, error) {
+	return k.CreatePodWithVolume(image, cmd, podName, securityTestName, "")
+}
 
+// CreatePodWithVolume creates a new Kubernetes pod with an optional volume mount
+func (k Kubernetes) CreatePodWithVolume(image, cmd, podName, securityTestName, volumePath string) (string, error) {
 	ctx := goContext.Background()
+
+	container := core.Container{
+		Name:            podName,
+		Image:           image,
+		ImagePullPolicy: core.PullIfNotPresent,
+		Command: []string{
+			"/bin/sh",
+			"-c",
+			cmd,
+		},
+		Env: []core.EnvVar{
+			{
+				Name:  "http_proxy",
+				Value: k.ProxyAddress,
+			},
+			{
+				Name:  "https_proxy",
+				Value: k.ProxyAddress,
+			},
+			{
+				Name:  "no_proxy",
+				Value: k.NoProxyAddresses,
+			},
+		},
+	}
+
+	// Add volume mount if volumePath is provided
+	if volumePath != "" {
+		container.VolumeMounts = []core.VolumeMount{
+			{
+				Name:      "workspace",
+				MountPath: "/workspace",
+				ReadOnly:  true,
+			},
+		}
+	}
+
+	podSpec := core.PodSpec{
+		Containers: []core.Container{container},
+		TopologySpreadConstraints: []core.TopologySpreadConstraint{
+			{
+				MaxSkew:           1,
+				TopologyKey:       "kubernetes.io/hostname",
+				WhenUnsatisfiable: "ScheduleAnyway",
+				LabelSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"huskyCI": securityTestName,
+					},
+				},
+			},
+		},
+		RestartPolicy: "Never",
+	}
+
+	// Add volume if volumePath is provided
+	if volumePath != "" {
+		podSpec.Volumes = []core.Volume{
+			{
+				Name: "workspace",
+				VolumeSource: core.VolumeSource{
+					HostPath: &core.HostPathVolumeSource{
+						Path: volumePath,
+						Type: func() *core.HostPathType {
+							t := core.HostPathDirectory
+							return &t
+						}(),
+					},
+				},
+			},
+		}
+	}
 
 	podToCreate := &core.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -72,47 +147,7 @@ func (k Kubernetes) CreatePod(image, cmd, podName, securityTestName string) (str
 				"huskyCI": securityTestName,
 			},
 		},
-		Spec: core.PodSpec{
-			Containers: []core.Container{
-				{
-					Name:            podName,
-					Image:           image,
-					ImagePullPolicy: core.PullIfNotPresent,
-					Command: []string{
-						"/bin/sh",
-						"-c",
-						cmd,
-					},
-					Env: []core.EnvVar{
-						{
-							Name:  "http_proxy",
-							Value: k.ProxyAddress,
-						},
-						{
-							Name:  "https_proxy",
-							Value: k.ProxyAddress,
-						},
-						{
-							Name:  "no_proxy",
-							Value: k.NoProxyAddresses,
-						},
-					},
-				},
-			},
-			TopologySpreadConstraints: []core.TopologySpreadConstraint{
-				{
-					MaxSkew:           1,
-					TopologyKey:       "kubernetes.io/hostname",
-					WhenUnsatisfiable: "ScheduleAnyway",
-					LabelSelector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"huskyCI": securityTestName,
-						},
-					},
-				},
-			},
-			RestartPolicy: "Never",
-		},
+		Spec: podSpec,
 	}
 
 	pod, err := k.client.CoreV1().Pods(k.Namespace).Create(ctx, podToCreate, metav1.CreateOptions{})

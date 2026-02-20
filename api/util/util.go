@@ -31,8 +31,43 @@ const (
 )
 
 // HandleCmd will extract %GIT_REPO%, %GIT_BRANCH% from cmd and replace it with the proper repository URL.
+// For file:// URLs, it replaces git clone commands with commands to use the mounted volume at /workspace.
 func HandleCmd(repositoryURL, repositoryBranch, cmd string) string {
 	if repositoryURL != "" && repositoryBranch != "" && cmd != "" {
+		// Check if this is a file:// URL (local repository)
+		if IsFileURL(repositoryURL) {
+			// Replace git clone commands with commands to copy from mounted volume
+			// The volume is mounted at /workspace in the container
+			// Handle various git clone patterns that may have prefixes/suffixes
+			
+			// Pattern 1: git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code (with optional prefix/suffix)
+			// Match the entire line containing this pattern (handles GIT_TERMINAL_PROMPT=0 prefix, --quiet suffix, etc.)
+			// Use cp -r /workspace/. code to copy contents (not the directory itself), or cp -r /workspace/* code
+			re1 := regexp.MustCompile(`(?m)^[^\n]*git clone -b %GIT_BRANCH% --single-branch %GIT_REPO% code[^\n]*$`)
+			if re1.MatchString(cmd) {
+				// Copy contents of /workspace into code directory
+				cmd = re1.ReplaceAllString(cmd, "mkdir -p code && cp -r /workspace/. code/ 2>/dev/null || cp -r /workspace/* code/")
+			}
+			
+			// Pattern 2: git clone %GIT_REPO% code (with optional prefix/suffix)
+			re2 := regexp.MustCompile(`(?m)^[^\n]*git clone %GIT_REPO% code[^\n]*$`)
+			if re2.MatchString(cmd) && !strings.Contains(cmd, "cp -r /workspace") {
+				cmd = re2.ReplaceAllString(cmd, "mkdir -p code && cp -r /workspace/. code/ 2>/dev/null || cp -r /workspace/* code/")
+			}
+			
+			// Pattern 3: Fallback - any git clone with %GIT_REPO% that wasn't caught above
+			if strings.Contains(cmd, "git clone") && strings.Contains(cmd, "%GIT_REPO%") && !strings.Contains(cmd, "cp -r /workspace") {
+				// Match any line containing git clone with %GIT_REPO% and code
+				re3 := regexp.MustCompile(`(?m)^[^\n]*git clone[^\n]*%GIT_REPO%[^\n]*code[^\n]*$`)
+				cmd = re3.ReplaceAllString(cmd, "mkdir -p code && cp -r /workspace/. code/ 2>/dev/null || cp -r /workspace/* code/")
+			}
+			
+			// Remove remaining placeholders since we're using extracted files
+			cmd = strings.Replace(cmd, "%GIT_BRANCH%", repositoryBranch, -1)
+			cmd = strings.Replace(cmd, "%GIT_REPO%", repositoryURL, -1)
+			return cmd
+		}
+		// Standard git repository handling
 		replace1 := strings.Replace(cmd, "%GIT_REPO%", repositoryURL, -1)
 		replace2 := strings.Replace(replace1, "%GIT_BRANCH%", repositoryBranch, -1)
 		return replace2
@@ -116,6 +151,12 @@ func RemoveDuplicates(s []string) []string {
 
 // HandleScanError show the right error when json is not expected as output of scan
 func HandleScanError(containerOutput string, otherErr error) error {
+	if otherErr != nil && (strings.Contains(otherErr.Error(), "unexpected end of JSON input") || strings.Contains(otherErr.Error(), "EOF")) {
+		trimmed := strings.TrimSpace(containerOutput)
+		if trimmed == "" {
+			return fmt.Errorf("security tool produced no valid JSON output (empty or truncated). This may mean the tool had no code to analyze (e.g. zip extraction in dockerapi failed or workspace was empty): %w", otherErr)
+		}
+	}
 	return fmt.Errorf("%s\nerror from top: %v", containerOutput, otherErr)
 }
 
@@ -150,7 +191,16 @@ func CheckValidInput(repository types.Repository, c echo.Context) (string, error
 }
 
 // CheckMaliciousRepoURL verifies if a given URL is a git repository and returns the sanitizied string and its error
+// It accepts both git repository URLs (ending in .git) and file:// URLs for local analysis
 func CheckMaliciousRepoURL(repositoryURL string) (string, error) {
+	// Check for file:// URLs (for local file analysis)
+	regexpFile := `file://[a-zA-Z0-9\-_/\.]+`
+	rFile := regexp.MustCompile(regexpFile)
+	if rFile.MatchString(repositoryURL) {
+		return rFile.FindString(repositoryURL), nil
+	}
+	
+	// Check for git repository URLs (must end in .git)
 	regexpGit := `((git|ssh|http(s)?)|((git@|gitlab@)[\w\.]+))(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?`
 	r := regexp.MustCompile(regexpGit)
 	valid, err := regexp.MatchString(regexpGit, repositoryURL)
@@ -274,4 +324,46 @@ func SliceContains(slice []string, str string) bool {
 		}
 	}
 	return false
+}
+
+// GetTokenFromRequest retrieves the authentication token from the request.
+// It first checks the "Husky-Token" header. If the header is empty,
+// it checks environment variables based on the request source:
+// - HUSKYCI_CLI_TOKEN for CLI requests (detected via User-Agent containing "huskyci-cli")
+// - HUSKYCI_CLIENT_TOKEN for client requests (detected via User-Agent containing "huskyci-client")
+// Returns empty string if no token is found.
+func GetTokenFromRequest(c echo.Context) string {
+	// First, check the Husky-Token header
+	token := c.Request().Header.Get("Husky-Token")
+	if token != "" {
+		return token
+	}
+
+	// If header is empty, check User-Agent to determine source
+	userAgent := c.Request().Header.Get("User-Agent")
+	
+	// Check if it's a CLI request
+	if strings.Contains(strings.ToLower(userAgent), "huskyci-cli") {
+		if cliToken := os.Getenv("HUSKYCI_CLI_TOKEN"); cliToken != "" {
+			return cliToken
+		}
+	}
+	
+	// Check if it's a client request
+	if strings.Contains(strings.ToLower(userAgent), "huskyci-client") {
+		if clientToken := os.Getenv("HUSKYCI_CLIENT_TOKEN"); clientToken != "" {
+			return clientToken
+		}
+	}
+	
+	// Fallback: if User-Agent is not set or doesn't match, try both environment variables
+	// CLI token takes precedence
+	if cliToken := os.Getenv("HUSKYCI_CLI_TOKEN"); cliToken != "" {
+		return cliToken
+	}
+	if clientToken := os.Getenv("HUSKYCI_CLIENT_TOKEN"); clientToken != "" {
+		return clientToken
+	}
+	
+	return ""
 }

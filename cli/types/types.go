@@ -20,6 +20,7 @@ type JSONPayload struct {
 	RepositoryURL      string          `json:"repositoryURL"`
 	RepositoryBranch   string          `json:"repositoryBranch"`
 	LanguageExclusions map[string]bool `json:"languageExclusions"`
+	EnryOutput         string          `json:"enryOutput,omitempty"` // Optional: Enry JSON output from CLI for file:// URLs
 }
 
 // Target is the struct that represents HuskyCI API target

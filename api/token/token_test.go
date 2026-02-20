@@ -127,20 +127,36 @@ var _ = Describe("Token", func() {
 			Expect(err).To(Equal(errors.New("URL is not valid")))
 		})
 	})
-	Context("When validatedURL is empty", func() {
-		It("Should return the expected error and an empty string", func() {
+	Context("When validatedURL is empty (generic token)", func() {
+		It("Should successfully generate a generic token", func() {
 			fakeExt := FakeExternal{
-				expectedURL:           "",
-				expectedValidateError: nil,
+				expectedURL:              "",
+				expectedValidateError:    nil,
+				expectedToken:            "MyBrandNewToken",
+				expectedGenerateError:    nil,
+				expectedTime:             time.Now(),
+				expectedUuid:             "MyUUidValue",
+				expectedStoreAccessError: nil,
+			}
+			fakeHash := FakeHashGen{
+				expectedSalt:              "MySalt",
+				expectedGenerateSaltError: nil,
+				expectedDecodedSalt:       make([]byte, 0),
+				expectedDecodeSaltError:   nil,
+				expectedHashName:          "Sha512",
+				expectedKeyLength:         32,
+				expectedIterations:        1024,
+				expectedHashValue:         "MyTokenHashValue",
 			}
 			tokenGen := THandler{
 				External: &fakeExt,
+				HashGen:  &fakeHash,
 			}
 			accessToken, err := tokenGen.GenerateAccessToken(types.TokenRequest{
-				RepositoryURL: "myRepo.com",
+				RepositoryURL: "",
 			})
-			Expect(accessToken).To(Equal(""))
-			Expect(err).To(Equal(errors.New("Empty URL is not valid")))
+			Expect(err).To(BeNil())
+			Expect(accessToken).NotTo(Equal(""))
 		})
 	})
 	Context("When GenerateToken returns an error", func() {
@@ -488,6 +504,35 @@ var _ = Describe("Token", func() {
 					External: &fakeExt,
 				}
 				Expect(tokenVal.ValidateToken("EncodedRcvToken", "RcvRepo")).To(Equal(errors.New("Access token doesn't have permission to run analysis in the provided repository")))
+			})
+		})
+		Context("When token has empty URL (generic token)", func() {
+			It("Should successfully validate with any repository URL", func() {
+				fakeExt := FakeExternal{
+					expectedURL:             "MyRcvURL",
+					expectedValidateError:   nil,
+					expectedFindAccessError: nil,
+					expectedAccessToken: types.DBToken{
+						IsValid:    true,
+						HuskyToken: "StoredHash",
+						URL:        "", // Empty URL means generic token
+						Salt:       "MySalt",
+					},
+					expectedDecodedString: "UUID:RandomVal",
+					expectedDecodeToError: nil,
+				}
+				fakeHash := FakeHashGen{
+					expectedDecodedSalt:     []byte("MySaltDecoded"),
+					expectedDecodeSaltError: nil,
+					expectedHashName:        "Sha512",
+					expectedKeyLength:       256,
+					expectedHashValue:       "StoredHash",
+				}
+				tokenVal := THandler{
+					External: &fakeExt,
+					HashGen:  &fakeHash,
+				}
+				Expect(tokenVal.ValidateToken("EncodedRcvToken", "AnyRepositoryURL")).To(BeNil())
 			})
 		})
 		Context("When hash of random data is different from the stored hash", func() {

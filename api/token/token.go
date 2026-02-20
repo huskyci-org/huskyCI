@@ -17,15 +17,16 @@ import (
 // random data. The hash of the random data is stored
 // using PBKDF2 algorithm. It is returned the base64 of
 // the two parts separated by two points.
+// If repositoryURL is empty, a generic token will be created
+// that can be used with any repository.
 func (tH *THandler) GenerateAccessToken(repo types.TokenRequest) (string, error) {
 	accessToken := types.DBToken{}
 	validatedURL, err := tH.External.ValidateURL(repo.RepositoryURL)
 	if err != nil {
 		return "", err
 	}
-	if validatedURL == "" {
-		return "", errors.New("Empty URL is not valid")
-	}
+	// Empty URL is now valid - it creates a generic token
+	// that can be used with any repository
 	token, err := tH.External.GenerateToken()
 	if err != nil {
 		return "", err
@@ -97,6 +98,8 @@ func (tH *THandler) ValidateRandomData(rdata, hashdata, salt string) error {
 // is a valid token. It will verify the access token
 // has permission to start an analysis for the received
 // repository URL.
+// If the token's URL is empty, it's a generic token
+// that can be used with any repository.
 func (tH *THandler) ValidateToken(token, repositoryURL string) error {
 	validURL, err := tH.External.ValidateURL(repositoryURL)
 	if err != nil {
@@ -113,20 +116,35 @@ func (tH *THandler) ValidateToken(token, repositoryURL string) error {
 	if !accessToken.IsValid {
 		return errors.New("Access token is invalid")
 	}
-	if accessToken.URL != validURL {
+	// If token's URL is empty, it's a generic token that works with any repository
+	// Otherwise, check for exact match
+	if accessToken.URL != "" && accessToken.URL != validURL {
 		return errors.New("Access token doesn't have permission to run analysis in the provided repository")
 	}
 	return tH.ValidateRandomData(randomData, accessToken.HuskyToken, accessToken.Salt)
 }
 
 // VerifyRepo will verify if exists an entry
-// for the received repository
+// for the received repository. It also checks for generic tokens
+// (tokens with empty URL) that can work with any repository.
 func (tH *THandler) VerifyRepo(repositoryURL string) error {
 	validURL, err := tH.External.ValidateURL(repositoryURL)
 	if err != nil {
 		return err
 	}
-	return tH.External.FindRepoURL(validURL)
+	// First check for repository-specific token
+	err = tH.External.FindRepoURL(validURL)
+	if err == nil {
+		return nil
+	}
+	// If no repository-specific token found, check for generic tokens
+	// Generic tokens have empty repositoryURL
+	err = tH.External.FindRepoURL("")
+	if err == nil {
+		return nil
+	}
+	// Neither repository-specific nor generic token found
+	return err
 }
 
 // InvalidateToken will set boolean flag IsValid

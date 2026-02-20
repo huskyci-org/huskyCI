@@ -32,6 +32,7 @@ build-all: build-api build-api-linux build-client build-client-linux build-cli b
 ## Builds API code into a binary
 build-api:
 	cd api && $(GO) build -ldflags $(LDFLAGS) -o "$(HUSKYCI-API-BIN)" server.go
+	@if [ "$$(uname -s)" = "Darwin" ] && [ -f "api/$(HUSKYCI-API-BIN)" ]; then xattr -c "api/$(HUSKYCI-API-BIN)" 2>/dev/null || true; fi
 
 ## Builds API code using linux architecture into a binary
 build-api-linux:

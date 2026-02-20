@@ -12,6 +12,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+// GetTokenFromEnv returns the authentication token from environment variables.
+// It checks HUSKYCI_CLI_TOKEN environment variable.
+// Returns empty string if not set.
+func GetTokenFromEnv() string {
+	return os.Getenv("HUSKYCI_CLI_TOKEN")
+}
+
 // GetCurrentTarget return a types.Target with current target
 func GetCurrentTarget() (*types.Target, error) {
 	// Get current targets
@@ -21,7 +28,7 @@ func GetCurrentTarget() (*types.Target, error) {
 		currentTarget.Endpoint = os.Getenv("HUSKYCI_CLIENT_API_ADDR")
 		currentTarget.Label = "env-var"
 		currentTarget.TokenStorage = "env-var"
-		currentTarget.Token = os.Getenv("HUSKYCI_CLIENT_TOKEN")
+		currentTarget.Token = GetTokenFromEnv()
 	} else {
 		targets := viper.GetStringMap("targets")
 		for k, v := range targets {
@@ -44,6 +51,9 @@ func GetCurrentTarget() (*types.Target, error) {
 				} else {
 					currentTarget.TokenStorage = target["token-storage"].(string)
 				}
+
+				// Always check for token from environment variable
+				currentTarget.Token = GetTokenFromEnv()
 
 			}
 		}

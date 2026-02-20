@@ -3,7 +3,10 @@ package util
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"strconv"
+	"strings"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
 	docker "github.com/huskyci-org/huskyCI/api/dockers"
@@ -127,7 +130,8 @@ func (cH *CheckUtils) checkDockerHosts(configAPI *apiContext.APIConfig) error {
 		return err
 	}
 
-	dockerHost := fmt.Sprintf("https://%s", configAPI.DockerHostsConfig.Host)
+	// Format Docker host address correctly (handles both Unix sockets and TCP addresses)
+	dockerHost := formatDockerHost(configAPI.DockerHostsConfig.Address, configAPI.DockerHostsConfig.DockerAPIPort)
 
 	return docker.HealthCheckDockerAPI(dockerHost)
 }
@@ -185,14 +189,63 @@ func (cH *CheckUtils) checkDefaultUser(configAPI *apiContext.APIConfig) error {
 	return nil
 }
 
+// formatDockerHost formats a Docker host address, handling both Unix sockets and TCP addresses.
+// It ensures unix paths are never URL-encoded in the result, so the Docker client does not
+// mis-parse them as HTTPS (e.g. "unix://%2Fvar%2Frun%2Fdocker.sock" → "unix:///var/run/docker.sock").
+func formatDockerHost(address string, port int) string {
+	address = strings.TrimSpace(address)
+	// Decode URL-encoded path so we never treat a path as a TCP host (e.g. %2Fvar%2Frun%2Fdocker.sock)
+	if decoded, err := url.PathUnescape(address); err == nil && decoded != address {
+		if strings.HasPrefix(decoded, "unix://") || strings.HasPrefix(decoded, "/") {
+			address = decoded
+		}
+	}
+	// Normalize unix:// URLs: decode path so client gets unix:///var/run/docker.sock, not unix://%2Fvar%2Frun%2Fdocker.sock
+	if strings.HasPrefix(address, "unix://") {
+		path := strings.TrimPrefix(address, "unix://")
+		if pathDecoded, err := url.PathUnescape(path); err == nil {
+			path = pathDecoded
+		}
+		return "unix://" + path
+	}
+	if strings.HasPrefix(address, "/") {
+		return fmt.Sprintf("unix://%s", address)
+	}
+	// For TCP addresses, format as https://host:port (dind serves TLS on 2376; use DOCKER_TLS_VERIFY=0 to skip cert verification)
+	return fmt.Sprintf("https://%s:%d", address, port)
+}
+
 // FormatDockerHostAddress formats the Docker host address based on the current host index.
+// When HUSKYCI_DOCKERAPI_ADDR is set to a TCP host (e.g. dockerapi), that value is always
+// used so Docker-in-Docker works even if the DB has a unix socket path or empty host.
 func FormatDockerHostAddress(dockerHost types.DockerAPIAddresses, configAPI *apiContext.APIConfig) (string, error) {
+	port := 2376
+	configAddr := ""
+	if configAPI != nil && configAPI.DockerHostsConfig != nil {
+		port = configAPI.DockerHostsConfig.DockerAPIPort
+		configAddr = strings.TrimSpace(configAPI.DockerHostsConfig.Address)
+	}
+	if configAddr == "" {
+		configAddr = strings.TrimSpace(os.Getenv("HUSKYCI_DOCKERAPI_ADDR"))
+		if p := os.Getenv("HUSKYCI_DOCKERAPI_PORT"); p != "" {
+			if portNum, err := strconv.Atoi(p); err == nil {
+				port = portNum
+			}
+		}
+	}
+	// Prefer configured TCP host when set (e.g. dockerapi in Docker Compose)
+	if configAddr != "" && !strings.HasPrefix(configAddr, "/") && !strings.HasPrefix(configAddr, "unix://") {
+		return formatDockerHost(configAddr, port), nil
+	}
 	if len(dockerHost.HostList) == 0 {
 		return "", errors.New("Docker host list is empty")
 	}
 	hostIndex := dockerHost.CurrentHostIndex % len(dockerHost.HostList)
-	host := dockerHost.HostList[hostIndex]
-	return fmt.Sprintf("https://%s:%d", host, configAPI.DockerHostsConfig.DockerAPIPort), nil
+	host := strings.TrimSpace(dockerHost.HostList[hostIndex])
+	if host == "" {
+		return "", errors.New("Docker host list contains empty host")
+	}
+	return formatDockerHost(host, port), nil
 }
 
 func checkSecurityTest(securityTestName string, configAPI *apiContext.APIConfig) error {

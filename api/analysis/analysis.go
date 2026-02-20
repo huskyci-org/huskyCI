@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/huskyci-org/huskyCI/api/log"
 	"github.com/huskyci-org/huskyCI/api/securitytest"
 	"github.com/huskyci-org/huskyCI/api/types"
+	"github.com/huskyci-org/huskyCI/api/util"
 	apiUtil "github.com/huskyci-org/huskyCI/api/util/api"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -18,7 +20,6 @@ const logInfoAnalysis = "ANALYSIS"
 
 // StartAnalysis starts the analysis given a RID and a repository.
 func StartAnalysis(RID string, repository types.Repository) {
-
 	// step 1: create a new analysis into MongoDB based on repository received
 	if err := registerNewAnalysis(RID, repository); err != nil {
 		return
@@ -76,6 +77,22 @@ func StartAnalysis(RID string, repository types.Repository) {
 
 	log.Info("StartAnalysisTest", apiHost, 2012, RID)
 
+	// For file:// URLs, check if Enry output was provided by CLI
+	// This avoids docker-in-docker issues where Enry can't see extracted files
+	if util.IsFileURL(repository.URL) && repository.EnryOutput != "" {
+		log.Info(logActionStart, logInfoAnalysis, 16, fmt.Sprintf("Using Enry output provided by CLI for file:// URL: %s", repository.URL))
+		// Parse the provided Enry output and populate enryScan.Codes directly
+		if err := enryScan.ParseProvidedEnryOutput(repository.EnryOutput, repository.LanguageExclusions); err != nil {
+			log.Error(logActionStart, logInfoAnalysis, 2011, fmt.Errorf("failed to parse provided Enry output: %w", err))
+			// Fall back to running Enry if parsing fails
+			log.Info(logActionStart, logInfoAnalysis, 16, "Falling back to running Enry in container")
+		} else {
+			log.Info(logActionStart, logInfoAnalysis, 16, fmt.Sprintf("Successfully parsed %d languages from provided Enry output", len(enryScan.Codes)))
+			// Skip running Enry since we have the output
+			goto skipEnryRun
+		}
+	}
+
 	if err := enryScan.New(RID, repository.URL, repository.Branch, enryScan.SecurityTestName, repository.LanguageExclusions, apiHost); err != nil {
 		log.Error(logActionStart, logInfoAnalysis, 2011, err)
 		return
@@ -84,6 +101,8 @@ func StartAnalysis(RID string, repository types.Repository) {
 		allScansResults.SetAnalysisError(err)
 		return
 	}
+
+skipEnryRun:
 
 	// step 3: run generic and languages security tests based on enryScan result in parallel
 	if err := allScansResults.Start(enryScan); err != nil {

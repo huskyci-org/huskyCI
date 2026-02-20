@@ -47,6 +47,7 @@ func StartAnalysis() (string, error) {
 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Husky-Token", config.HuskyToken)
+	req.Header.Add("User-Agent", "huskyci-client")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -108,6 +109,7 @@ func GetAnalysis(RID string) (types.Analysis, error) {
 	}
 
 	req.Header.Add("Husky-Token", config.HuskyToken)
+	req.Header.Add("User-Agent", "huskyci-client")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {

@@ -1,10 +1,13 @@
 package dockers
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 
 	dockerTypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -39,48 +42,151 @@ func NewDocker(dockerHost string) (*Docker, error) {
 		return nil, err
 	}
 
-	// env vars needed by docker/docker library to create a NewEnvClient:
+	// When the caller passed a unix/path-like host (e.g. from DB), use configured TCP host so Docker-in-Docker works.
+	// Fixes "lookup /var/run/docker.sock: no such host". Prefer config, fall back to env so it works even if config wasn't loaded with env.
+	isPathLike := strings.HasPrefix(dockerHost, "unix://") || strings.HasPrefix(dockerHost, "/") ||
+		strings.Contains(dockerHost, "%2Fvar%2Frun") || strings.Contains(dockerHost, "/var/run/") ||
+		strings.Contains(dockerHost, "docker.sock")
+	if isPathLike {
+		configAddr := ""
+		configPort := 2376
+		if configAPI.DockerHostsConfig != nil {
+			configAddr = strings.TrimSpace(configAPI.DockerHostsConfig.Address)
+			configPort = configAPI.DockerHostsConfig.DockerAPIPort
+		}
+		if configAddr == "" {
+			configAddr = strings.TrimSpace(os.Getenv("HUSKYCI_DOCKERAPI_ADDR"))
+			if p := os.Getenv("HUSKYCI_DOCKERAPI_PORT"); p != "" {
+				if port, err := strconv.Atoi(p); err == nil {
+					configPort = port
+				}
+			}
+		}
+		if configAddr != "" && !strings.HasPrefix(configAddr, "/") && !strings.HasPrefix(configAddr, "unix://") {
+			dockerHost = fmt.Sprintf("https://%s:%d", configAddr, configPort)
+		}
+	}
+	// If host is still empty or invalid (e.g. "https://:2376"), use env so we never pass empty to WithHost
+	if dockerHost == "" || strings.HasPrefix(dockerHost, "https://:") || strings.HasPrefix(dockerHost, "http://:") {
+		configAddr := strings.TrimSpace(os.Getenv("HUSKYCI_DOCKERAPI_ADDR"))
+		configPort := 2376
+		if p := os.Getenv("HUSKYCI_DOCKERAPI_PORT"); p != "" {
+			if port, err := strconv.Atoi(p); err == nil {
+				configPort = port
+			}
+		}
+		if configAddr != "" {
+			dockerHost = fmt.Sprintf("https://%s:%d", configAddr, configPort)
+		}
+	}
+	if dockerHost == "" {
+		log.Error(logActionNew, logInfoAPI, 3002, fmt.Errorf("unable to parse docker host: Docker host is empty and HUSKYCI_DOCKERAPI_ADDR is not set"))
+		return nil, fmt.Errorf("Docker host is empty; set HUSKYCI_DOCKERAPI_ADDR (e.g. dockerapi)")
+	}
+
+	// Set env vars so WithTLSClientConfigFromEnv can read them; do not rely on DOCKER_HOST for client creation
+	// to avoid races when multiple goroutines call NewDocker (each gets explicit host via WithHost).
 	err = os.Setenv("DOCKER_HOST", dockerHost)
 	if err != nil {
 		log.Error(logActionNew, logInfoAPI, 3001, err)
 		return nil, err
 	}
-
-	err = os.Setenv("DOCKER_CERT_PATH", configAPI.DockerHostsConfig.PathCertificate)
-	if err != nil {
-		log.Error(logActionNew, logInfoAPI, 3019, err)
-		return nil, err
+	isUnixSocket := strings.HasPrefix(dockerHost, "unix://")
+	if !isUnixSocket && configAPI.DockerHostsConfig != nil {
+		err = os.Setenv("DOCKER_CERT_PATH", configAPI.DockerHostsConfig.PathCertificate)
+		if err != nil {
+			log.Error(logActionNew, logInfoAPI, 3019, err)
+			return nil, err
+		}
+		err = os.Setenv("DOCKER_TLS_VERIFY", strconv.Itoa(configAPI.DockerHostsConfig.TLSVerify))
+		if err != nil {
+			log.Error(logActionNew, logInfoAPI, 3020, err)
+			return nil, err
+		}
+	} else if isUnixSocket {
+		os.Unsetenv("DOCKER_CERT_PATH")
+		os.Unsetenv("DOCKER_TLS_VERIFY")
 	}
 
-	tlsVerify := strconv.Itoa(configAPI.DockerHostsConfig.TLSVerify)
-	err = os.Setenv("DOCKER_TLS_VERIFY", tlsVerify)
-	if err != nil {
-		log.Error(logActionNew, logInfoAPI, 3020, err)
-		return nil, err
+	opts := []client.Opt{client.WithHost(dockerHost), client.WithAPIVersionNegotiation()}
+	if !isUnixSocket {
+		opts = append(opts, client.WithTLSClientConfigFromEnv())
 	}
-
-	client, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(opts...)
 	if err != nil {
 		log.Error(logActionNew, logInfoAPI, 3002, err)
 		return nil, err
 	}
 	docker := &Docker{
-		client: client,
+		client: cli,
 	}
 	return docker, nil
 }
 
 // CreateContainer creates a new container and return its CID and an error
 func (d Docker) CreateContainer(image, cmd string) (string, error) {
+	return d.CreateContainerWithVolume(image, cmd, "")
+}
+
+// CreateContainerWithVolume creates a new container with an optional volume mount and returns its CID and an error
+func (d Docker) CreateContainerWithVolume(image, cmd, volumePath string) (string, error) {
 	ctx := goContext.Background()
-	resp, err := d.client.ContainerCreate(ctx, &container.Config{
+	config := &container.Config{
 		Image: image,
 		Tty:   true,
 		Cmd:   []string{"/bin/sh", "-c", cmd},
-	}, nil, nil, nil, "")
-
+	}
+	
+	var hostConfig *container.HostConfig
+	if volumePath != "" {
+		// For docker-in-docker, bind mounts are resolved relative to the Docker daemon's host (dockerapi)
+		// Since dockerapi has /tmp/huskyci-zips-host:/tmp/huskyci-zips mounted, the path should work
+		// Mount the volume at /workspace in the container
+		hostConfig = &container.HostConfig{
+			Binds: []string{fmt.Sprintf("%s:/workspace:ro", volumePath)},
+		}
+	}
+	
+	resp, err := d.client.ContainerCreate(ctx, config, hostConfig, nil, nil, "")
+	
 	if err != nil {
 		log.Error("CreateContainer", logInfoAPI, 3005, err)
+		// If volume mount fails, log the error with more context
+		if volumePath != "" {
+			log.Error("CreateContainer", logInfoAPI, 3005, fmt.Errorf("failed to create container with volume mount %s: %v", volumePath, err))
+		}
+		return "", err
+	}
+	return resp.ID, nil
+}
+
+// CreateContainerWithVolumeRW creates a new container with a read-write volume mount
+func (d Docker) CreateContainerWithVolumeRW(image, cmd, volumePath string) (string, error) {
+	ctx := goContext.Background()
+	config := &container.Config{
+		Image: image,
+		Tty:   true,
+		Cmd:   []string{"/bin/sh", "-c", cmd},
+	}
+	
+	var hostConfig *container.HostConfig
+	if volumePath != "" {
+		// For docker-in-docker, bind mounts are resolved relative to the Docker daemon's host (dockerapi)
+		// Since dockerapi has /tmp/huskyci-zips-host:/tmp/huskyci-zips mounted, the path should work
+		// Mount the volume at /workspace in the container with read-write access
+		hostConfig = &container.HostConfig{
+			Binds: []string{fmt.Sprintf("%s:/workspace", volumePath)}, // No :ro, so it's read-write
+		}
+	}
+	
+	resp, err := d.client.ContainerCreate(ctx, config, hostConfig, nil, nil, "")
+	
+	if err != nil {
+		log.Error("CreateContainer", logInfoAPI, 3005, err)
+		// If volume mount fails, log the error with more context
+		if volumePath != "" {
+			log.Error("CreateContainer", logInfoAPI, 3005, fmt.Errorf("failed to create container with volume mount %s: %v", volumePath, err))
+		}
 		return "", err
 	}
 	return resp.ID, nil
@@ -216,16 +322,68 @@ func (d Docker) ReadOutputStderr() (string, error) {
 }
 
 // PullImage pulls an image, like docker pull.
+// It reads the pull stream to capture detailed error messages, including platform mismatch errors.
 func (d Docker) PullImage(image string) error {
 	ctx := goContext.Background()
-	_, err := d.client.ImagePull(ctx, image, dockerTypes.ImagePullOptions{})
+	reader, err := d.client.ImagePull(ctx, image, dockerTypes.ImagePullOptions{})
 	if err != nil {
-		log.Error("PullImage", logInfoAPI, 3009, err)
+		log.Error("PullImage", logInfoAPI, 3009, fmt.Sprintf("Failed to start image pull for %s: %v", image, err))
+		return err
 	}
-	return err
+	defer reader.Close()
+
+	// Read the pull stream to capture errors
+	scanner := bufio.NewScanner(reader)
+	var lastError string
+	var pullError error
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		
+		// Parse JSON lines from Docker pull stream
+		var jsonLine map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &jsonLine); err == nil {
+			// Check for error field
+			if errorDetail, ok := jsonLine["errorDetail"].(map[string]interface{}); ok {
+				if errorMsg, ok := errorDetail["message"].(string); ok {
+					lastError = errorMsg
+					// Check for platform mismatch errors
+					if strings.Contains(strings.ToLower(errorMsg), "no matching manifest") ||
+						strings.Contains(strings.ToLower(errorMsg), "platform") ||
+						strings.Contains(strings.ToLower(errorMsg), "manifest unknown") {
+						pullError = fmt.Errorf("platform mismatch or manifest not found: %s", errorMsg)
+					} else {
+						pullError = fmt.Errorf("pull error: %s", errorMsg)
+					}
+				}
+			}
+			// Check for error field at top level
+			if errorMsg, ok := jsonLine["error"].(string); ok && errorMsg != "" {
+				lastError = errorMsg
+				if pullError == nil {
+					pullError = fmt.Errorf("pull error: %s", errorMsg)
+				}
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Error("PullImage", logInfoAPI, 3009, fmt.Sprintf("Error reading pull stream for %s: %v", image, err))
+		if pullError == nil {
+			return fmt.Errorf("failed to read pull stream: %w", err)
+		}
+	}
+
+	if pullError != nil {
+		log.Error("PullImage", logInfoAPI, 3009, fmt.Sprintf("Image pull failed for %s: %v (last error: %s)", image, pullError, lastError))
+		return pullError
+	}
+
+	return nil
 }
 
 // ImageIsLoaded returns a bool if a a docker image is loaded or not.
+// On Docker API errors (e.g. wrong DOCKER_HOST), it logs and returns false instead of panicking.
 func (d Docker) ImageIsLoaded(image string) bool {
 	args := filters.NewArgs()
 	args.Add("reference", image)
@@ -235,7 +393,7 @@ func (d Docker) ImageIsLoaded(image string) bool {
 	result, err := d.client.ImageList(ctx, options)
 	if err != nil {
 		log.Error("ImageIsLoaded", logInfoAPI, 3010, err)
-		panic(err)
+		return false
 	}
 
 	return len(result) != 0

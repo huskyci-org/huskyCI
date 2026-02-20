@@ -35,8 +35,9 @@ The E2E tests verify:
 
 3. **Wait for services to be ready** (usually takes 1-2 minutes):
    ```bash
-   # Check MongoDB
-   docker exec huskyCI_MongoDB mongosh --eval "db.adminCommand('ping')"
+   # Check MongoDB (MongoDB 4.4 uses 'mongo' command, not 'mongosh')
+   # Simple check - just verify the container is responding
+   docker exec huskyCI_MongoDB mongo --eval "db.adminCommand('ping')" --quiet
    
    # Check API
    curl http://localhost:8888/healthcheck
@@ -50,6 +51,21 @@ The E2E tests verify:
 5. **Clean up** (optional):
    ```bash
    make compose-down
+   ```
+
+## Running E2E Tests on Feature Branches (before merge to main)
+
+To run E2E on each feature branch before merging to `main`:
+
+1. **Start Docker** (required for compose and E2E).
+2. From the repo root:
+   ```bash
+   ./tests/e2e/run-e2e-per-branch.sh
+   ```
+   By default this runs E2E on `feat/multi-platform-docker-builds` and `feat/setup-wizard-command` (branches that build the full API). If the API does not build on a branch (e.g. `feat/zip-upload-analysis`, which is API-only and depends on `main`), that branch is skipped; validate it by merging into `feat/setup-wizard-command` (or `main`) and running E2E there.
+3. To run E2E on specific branches:
+   ```bash
+   ./tests/e2e/run-e2e-per-branch.sh feat/setup-wizard-command
    ```
 
 ## Running E2E Tests in CI/CD
@@ -79,7 +95,7 @@ You can customize the test behavior by modifying these variables in `run-e2e-tes
 
 - Ensure Docker Compose services are running: `docker-compose -f deployments/docker-compose.yml ps`
 - Check if the API is accessible: `curl http://localhost:8888/healthcheck`
-- Verify MongoDB is healthy: `docker exec huskyCI_MongoDB mongosh --eval "db.adminCommand('ping')"`
+- Verify MongoDB is healthy: `docker exec huskyCI_MongoDB mongo --eval "db.adminCommand('ping')" --quiet`
 
 ### Tests timeout waiting for analysis
 

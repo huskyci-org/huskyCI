@@ -191,11 +191,19 @@ func (dF DefaultConfig) getGitPrivateSSHKey() string {
 }
 
 func (dF DefaultConfig) getGraylogConfig() *GraylogConfig {
+	appName := dF.Caller.GetEnvironmentVariable("HUSKYCI_LOGGING_GRAYLOG_APP_NAME")
+	if appName == "" {
+		appName = "huskyCI"
+	}
+	tag := dF.Caller.GetEnvironmentVariable("HUSKYCI_LOGGING_GRAYLOG_TAG")
+	if tag == "" {
+		tag = "huskyCI"
+	}
 	return &GraylogConfig{
 		Address:        dF.Caller.GetEnvironmentVariable("HUSKYCI_LOGGING_GRAYLOG_ADDR"),
 		Protocol:       dF.Caller.GetEnvironmentVariable("HUSKYCI_LOGGING_GRAYLOG_PROTO"),
-		AppName:        dF.Caller.GetEnvironmentVariable("HUSKYCI_LOGGING_GRAYLOG_APP_NAME"),
-		Tag:            dF.Caller.GetEnvironmentVariable("HUSKYCI_LOGGING_GRAYLOG_TAG"),
+		AppName:        appName,
+		Tag:            tag,
 		DevelopmentEnv: dF.GetGraylogIsDev(),
 	}
 }
