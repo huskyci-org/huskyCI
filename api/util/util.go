@@ -151,6 +151,12 @@ func RemoveDuplicates(s []string) []string {
 
 // HandleScanError show the right error when json is not expected as output of scan
 func HandleScanError(containerOutput string, otherErr error) error {
+	if otherErr != nil && (strings.Contains(otherErr.Error(), "unexpected end of JSON input") || strings.Contains(otherErr.Error(), "EOF")) {
+		trimmed := strings.TrimSpace(containerOutput)
+		if trimmed == "" {
+			return fmt.Errorf("security tool produced no valid JSON output (empty or truncated). This may mean the tool had no code to analyze (e.g. zip extraction in dockerapi failed or workspace was empty): %w", otherErr)
+		}
+	}
 	return fmt.Errorf("%s\nerror from top: %v", containerOutput, otherErr)
 }
 
