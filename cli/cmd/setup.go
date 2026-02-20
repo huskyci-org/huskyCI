@@ -729,9 +729,20 @@ func (w *setupWizard) verifyConnection(endpoint, token string, useToken bool) {
 		return
 	}
 
-	if err := verifyConnection(endpoint, token); err != nil {
-		w.printWarning(fmt.Sprintf("Connection verification failed: %v", err))
-		fmt.Println("   You can still use huskyCI CLI, but please verify your endpoint and token.")
+	err := verifyConnection(endpoint, token)
+	if err != nil {
+		// If connection refused to a local endpoint, offer to start Docker and retry once
+		if !w.nonInteractive && util.IsConnectionRefused(err) && util.IsLocalEndpoint(endpoint) && util.PromptAndStartDocker(os.Stdin) {
+			fmt.Println("   Retrying connection in 5 seconds...")
+			time.Sleep(5 * time.Second)
+			err = verifyConnection(endpoint, token)
+		}
+		if err != nil {
+			w.printWarning(fmt.Sprintf("Connection verification failed: %v", err))
+			fmt.Println("   You can still use huskyCI CLI, but please verify your endpoint and token.")
+		} else {
+			w.printSuccess("Connection verified successfully!")
+		}
 	} else {
 		w.printSuccess("Connection verified successfully!")
 	}

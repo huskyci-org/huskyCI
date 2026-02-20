@@ -3,14 +3,17 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/huskyci-org/huskyCI/cli/config"
 	"github.com/huskyci-org/huskyCI/cli/types"
+	"github.com/huskyci-org/huskyCI/cli/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -115,6 +118,14 @@ func runConnectionTest(customEndpoint, targetName string, skipAuth bool) error {
 	fmt.Println("Test 1: Basic Connectivity")
 	fmt.Println("──────────────────────────────────────────────────────────────────────────────")
 	result := testBasicConnectivity(endpoint)
+	// If connection refused to a local endpoint, offer to start Docker and retry once
+	if !result.Success && util.IsConnectionRefused(errors.New(result.ErrorMessage)) && util.IsLocalEndpoint(endpoint) {
+		if util.PromptAndStartDocker(os.Stdin) {
+			fmt.Println("  Retrying connection in 5 seconds...")
+			time.Sleep(5 * time.Second)
+			result = testBasicConnectivity(endpoint)
+		}
+	}
 	results = append(results, result)
 	printTestResult(result)
 	fmt.Println()
