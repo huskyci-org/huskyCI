@@ -12,6 +12,7 @@ GOVERALLS ?= $(GOBIN)/goveralls
 HUSKYCI-API-BIN ?= huskyci-api-bin
 HUSKYCI-CLIENT-BIN ?= huskyci-client-bin
 HUSKYCI-CLI-BIN ?= huskyci-cli-bin
+HUSKYCI-RUNNER-BIN ?= huskyci-runner-bin
 
 COLOR_RESET = \033[0m
 COLOR_COMMAND = \033[36m
@@ -49,6 +50,7 @@ build-client-linux:
 ## Builds cli code into a binary
 build-cli:
 	cd cli && $(GO) build -ldflags $(LDFLAGS) -o "$(HUSKYCI-CLI-BIN)" main.go
+	@if [ "$$(uname -s)" = "Darwin" ] && [ -f "cli/$(HUSKYCI-CLI-BIN)" ]; then xattr -c "cli/$(HUSKYCI-CLI-BIN)" 2>/dev/null || true; fi
 
 ## Builds cli code using macOS (darwin) architecture into a binary
 build-cli-darwin:
@@ -65,6 +67,11 @@ build-cli-darwin-arm64:
 ## Builds cli code using linux architecture into a binary
 build-cli-linux:
 	cd cli && GOOS=linux GOARCH=amd64 $(GO) build -ldflags $(LDFLAGS) -o "$(HUSKYCI-CLI-BIN)" main.go
+
+## Builds the remote runner service binary (for HUSKYCI_RUNNER_TYPE=remote)
+build-runner:
+	cd cmd/runner && $(GO) build -ldflags $(LDFLAGS) -o "$(HUSKYCI-RUNNER-BIN)" .
+	@if [ "$$(uname -s)" = "Darwin" ] && [ -f "cmd/runner/$(HUSKYCI-RUNNER-BIN)" ]; then xattr -c "cmd/runner/$(HUSKYCI-RUNNER-BIN)" 2>/dev/null || true; fi
 
 ## Builds all securityTest containers locally with the latest tags
 build-containers:
@@ -97,6 +104,11 @@ check-containers-version:
 compose:
 	docker-compose -f deployments/docker-compose.yml down -v
 	docker-compose -f deployments/docker-compose.yml up -d --build --force-recreate
+
+## Builds the extract image and loads it into the running Docker API (DinD). Required for file:// (zip) analysis when using Docker Compose. Run once after 'make compose'.
+load-extract-image:
+	docker build -t huskyciorg/extract:latest deployments/dockerfiles/extract
+	docker save huskyciorg/extract:latest | docker exec -i huskyCI_Docker_API docker load
 
 ## Composes down
 compose-down:
