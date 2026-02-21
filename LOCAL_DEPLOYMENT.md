@@ -7,8 +7,13 @@ This guide provides step-by-step instructions for deploying the HuskyCI API serv
 The HuskyCI system consists of:
 - **API Server** (`api/server.go`): Main API server that orchestrates security tests
 - **MongoDB**: Database for storing analysis results
-- **Docker API**: Docker-in-Docker service for running security test containers
+- **Container runner**: Abstraction used by the API to run security test and zip-extract containers. By default this is a **Docker runner** that talks to a Docker daemon (TCP or Unix socket).
 - **CLI** (`cli/`): Command-line tool for interacting with the API
+
+**Runner abstraction:** The API does not depend on a specific Docker host. It uses a `Runner` interface (`api/runner`). You can choose:
+
+- **Docker runner** (default): The API talks to a Docker daemon (TCP or Unix socket). Config: `HUSKYCI_DOCKERAPI_ADDR`, `HUSKYCI_DOCKERAPI_PORT`, and TLS/cert settings. Set `HUSKYCI_RUNNER_TYPE=docker` or leave it unset.
+- **Remote runner**: The API sends run requests to a separate **runner service** over HTTP. Useful when the API runs in a restricted environment and cannot reach a Docker socket. Set `HUSKYCI_RUNNER_TYPE=remote` and `HUSKYCI_RUNNER_ADDR` (e.g. `http://runner:8090`). The runner service must be built with `make build-runner` and run on a host (or container) that has access to the Docker daemon (e.g. mount `/var/run/docker.sock`). See **Remote runner service** below for how to run and deploy it.
 
 ## Deployment Options
 
@@ -32,7 +37,13 @@ This is the easiest way to deploy the full environment with all dependencies.
    - Docker API on port 2376
    - HuskyCI API on port 8888
 
-3. **Verify services are running**:
+3. **Load the extract image** (required for file:// zip upload analysis when using Docker Compose). Run once after compose is up:
+   ```bash
+   make load-extract-image
+   ```
+   This builds the zip-extraction image on the host and loads it into the Docker API container so the API can extract uploaded zips without container network access.
+
+4. **Verify services are running**:
    ```bash
    # Check MongoDB (MongoDB 4.4 uses 'mongo' command, not 'mongosh')
    # Simple check - just verify the container is responding
@@ -45,7 +56,7 @@ This is the easiest way to deploy the full environment with all dependencies.
    curl http://localhost:8888/healthcheck
    ```
 
-4. **Stop services** (when done):
+5. **Stop services** (when done):
    ```bash
    make compose-down
    ```
@@ -83,6 +94,9 @@ For development/testing without Docker Compose, you can run the API server direc
    export HUSKYCI_DOCKERAPI_PORT="2376"            # optional; default 2376
    export HUSKYCI_DOCKERAPI_TLS_VERIFY="0"
    export HUSKYCI_DOCKERAPI_CERT_PATH="/path/to/certs"  # if using TLS
+   # Optional: use remote runner instead of Docker
+   # export HUSKYCI_RUNNER_TYPE="remote"
+   # export HUSKYCI_RUNNER_ADDR="http://localhost:8090"
    ```
 
 2. **Build the API server**:
@@ -104,6 +118,49 @@ For development/testing without Docker Compose, you can run the API server direc
    go run server.go
    ```
 
+### Remote runner service (optional)
+
+When `HUSKYCI_RUNNER_TYPE=remote`, the API does not talk to Docker directly; it sends container run requests to a **runner service** over HTTP. The runner service runs on a host (or container) that has access to the Docker daemon and executes the same run/health contract.
+
+**Environment variables (API):**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `HUSKYCI_RUNNER_TYPE` | `docker` or `remote` | `docker` |
+| `HUSKYCI_RUNNER_ADDR` | Base URL of the runner service (e.g. `http://runner:8090`) | Required when type is `remote` |
+
+**Build and run the runner service:**
+
+1. Build the binary:
+   ```bash
+   make build-runner
+   ```
+
+2. Run the runner (with Docker socket access):
+   ```bash
+   # On the host (Docker socket default)
+   ./cmd/runner/huskyci-runner-bin
+
+   # Or set port (default 8090)
+   RUNNER_PORT=8090 ./cmd/runner/huskyci-runner-bin
+   ```
+
+3. In a container (e.g. for Docker Compose), mount the Docker socket and expose the port:
+   ```yaml
+   runner:
+     image: ...  # or build from cmd/runner
+     volumes:
+       - /var/run/docker.sock:/var/run/docker.sock
+     ports:
+       - "8090:8090"
+   ```
+   Then point the API at it: `HUSKYCI_RUNNER_TYPE=remote` and `HUSKYCI_RUNNER_ADDR=http://runner:8090` (or `http://localhost:8090` if the API runs on the host).
+
+**Endpoints:**
+
+- `GET /health` — Returns 200 if the Docker daemon is reachable.
+- `POST /run` — Runs a container. Body: JSON `{ "image", "cmd", "volumePath", "timeoutSeconds", "readWriteVolume" }`, or multipart with part `request` (same JSON) and optional part `stdin` (raw bytes). Response: JSON `{ "stdout", "stderr", "exitCode", "error?" }`.
+
 ## CLI Configuration and Testing
 
 ### Configure CLI
@@ -112,6 +169,15 @@ For development/testing without Docker Compose, you can run the API server direc
 ```bash
 make build-cli
 ./cli/huskyci-cli-bin setup
+```
+
+**Installing the CLI on macOS:** If you see "Failed to execute process" or "interpreter directive (#!) is broken?" when running the CLI, the binary in use is likely a **Linux** build (ELF). Build a native macOS binary and install it, e.g.:
+
+```bash
+make build-cli
+cp cli/huskyci-cli-bin ~/.local/bin/huskyci
+# If macOS blocks execution, clear quarantine:
+xattr -c ~/.local/bin/huskyci
 ```
 
 **Option B: Using config file** (`~/.huskyci/config.yaml`):
@@ -206,6 +272,24 @@ The E2E test script (`tests/e2e/run-e2e-tests.sh`) performs:
 5. Analysis monitoring
 6. Results verification
 
+### Local (file://) vs remote – test matrix
+
+For **file://** (zip upload), the clone line is replaced with a copy from `/workspace`; the container sees the extracted dir at `/workspace`. **Trivy** is special-cased to run `trivy fs /workspace/` and always emit valid JSON (or `{}`). For **remote** (git URL), the flow is unchanged: clone then run the tool on `./code`.
+
+After running one file:// analysis (`./cli/huskyci-cli-bin run ./path/to/project`), record pass/fail per test from API logs or the analysis result. Example below from a **Go-only** file:// run (Enry from CLI; only Generic + Go language tests run):
+
+| Test       | file:// (zip) | Remote (git) | Notes |
+|------------|----------------|-------------|-------|
+| Enry       | N/A (CLI)      | pass        | For file://, CLI provides Enry output; API skips Enry container. |
+| Gitauthors | skipped        | pass        | Skipped for file:// (no git history in extracted dir). |
+| Gitleaks   | pass           | —           | Clone line replaced with copy from `/workspace`. |
+| Trivy      | pass           | —           | Special-cased: runs on `/workspace/`, emits JSON or `{}`. |
+| Gosec      | pass           | —           | Clone → copy, then same cmd on `./code`. |
+| Bandit     | —              | —           | Run with a Python project to verify. |
+| Others     | —              | —           | Per language (Brakeman/Ruby, npmaudit/JS, etc.). |
+
+If a test fails only for file://, fix its command in `api/util/util.go` (same pattern: replace clone with copy, then existing cmd) or document the exception.
+
 ## Key Files Reference
 
 - **API Server**: [`api/server.go`](api/server.go) - Main entry point
@@ -269,8 +353,9 @@ The E2E test script (`tests/e2e/run-e2e-tests.sh`) performs:
 make create-certs
 make compose
 
-# 2. Wait for services (30-60 seconds)
+# 2. Wait for services (30-60 seconds), then load extract image for zip analysis
 curl http://localhost:8888/healthcheck
+make load-extract-image
 
 # 3. Generate token
 TOKEN=$(curl -s -X POST \
@@ -286,7 +371,7 @@ make build-cli
 # 5. Test connection
 ./cli/huskyci-cli-bin test-connection --endpoint http://localhost:8888
 
-# 6. Run analysis
+# 6. Run analysis (file:// zip upload requires load-extract-image from step 2)
 ./cli/huskyci-cli-bin run .
 
 # 7. Cleanup
