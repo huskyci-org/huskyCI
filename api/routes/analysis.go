@@ -2,6 +2,7 @@ package routes
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,12 +14,11 @@ import (
 	"github.com/huskyci-org/huskyCI/api/analysis"
 	"github.com/huskyci-org/huskyCI/api/auth"
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
-	huskydocker "github.com/huskyci-org/huskyCI/api/dockers"
 	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/runner"
 	"github.com/huskyci-org/huskyCI/api/token"
 	"github.com/huskyci-org/huskyCI/api/types"
 	"github.com/huskyci-org/huskyCI/api/util"
-	apiUtil "github.com/huskyci-org/huskyCI/api/util/api"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -276,30 +276,31 @@ func ReceiveRequest(c echo.Context) error {
 			}
 		}
 		
-		// Always extract in dockerapi to ensure dockerapi's Docker daemon can see the files
-		// This is necessary because docker-in-docker doesn't properly share bind mounts
-		// Even if files exist in API container, dockerapi can't see them
+		// Always extract via runner so security test containers can see the code.
+		// API and runner (Docker API) must share the same volume (e.g. /tmp/huskyci-zips-host in docker-compose).
 		if os.Getenv("HUSKYCI_INFRASTRUCTURE_USE") == "docker" {
-			log.Info(logActionReceiveRequest, logInfoAnalysis, 26, fmt.Sprintf("Attempting to extract zip in dockerapi for RID: %s", extractedRID))
-			dockerAPIHost, err := apiContext.APIConfiguration.DBInstance.FindAndModifyDockerAPIAddresses()
-			if err != nil {
-				log.Error(logActionReceiveRequest, logInfoAnalysis, 1018, fmt.Errorf("failed to get dockerapi host (non-fatal): %v", err))
-			} else {
-				apiHost, err := apiUtil.FormatDockerHostAddress(dockerAPIHost, apiContext.APIConfiguration)
-				if err != nil {
-					log.Error(logActionReceiveRequest, logInfoAnalysis, 1018, fmt.Errorf("failed to format dockerapi host (non-fatal): %v", err))
-				} else {
-					log.Info(logActionReceiveRequest, logInfoAnalysis, 26, fmt.Sprintf("Extracting zip in dockerapi: zipPath=%s, destDir=%s", zipPath, extractedDir))
-					// Extract files in dockerapi using a temporary container
-					// This ensures dockerapi can see the files even if they already exist in API container
-					if err := huskydocker.ExtractZipInDockerAPI(apiHost, zipPath, extractedDir); err != nil {
-						// Log but don't fail - extraction in API container may have succeeded
-						log.Error(logActionReceiveRequest, logInfoAnalysis, 1018, fmt.Errorf("failed to extract zip in dockerapi (non-fatal): %v", err))
-					} else {
-						log.Info(logActionReceiveRequest, logInfoAnalysis, 26, fmt.Sprintf("Successfully extracted zip in dockerapi for RID: %s", extractedRID))
-					}
+			r := runner.Default()
+			if r == nil {
+				log.Error(logActionReceiveRequest, logInfoAnalysis, 1018, fmt.Errorf("no container runner configured"))
+				reply := map[string]interface{}{
+					"success": false,
+					"error":   "runner unavailable",
+					"message": "No container runner configured. File upload analysis requires a runner (Docker).",
 				}
+				return c.JSON(http.StatusServiceUnavailable, reply)
 			}
+			log.Info(logActionReceiveRequest, logInfoAnalysis, 26, fmt.Sprintf("Extracting zip via runner: zipPath=%s, destDir=%s", zipPath, extractedDir))
+			volumePath := filepath.Dir(zipPath)
+			if err := runner.ExtractZip(context.Background(), r, zipPath, extractedDir, volumePath); err != nil {
+				log.Error(logActionReceiveRequest, logInfoAnalysis, 1018, err)
+				reply := map[string]interface{}{
+					"success": false,
+					"error":   "zip extraction failed",
+					"message": fmt.Sprintf("Zip could not be extracted (security tests need the code there): %v. Ensure API and runner share the same volume (e.g. /tmp/huskyci-zips-host).", err),
+				}
+				return c.JSON(http.StatusServiceUnavailable, reply)
+			}
+			log.Info(logActionReceiveRequest, logInfoAnalysis, 26, fmt.Sprintf("Successfully extracted zip for RID: %s", extractedRID))
 		}
 	}
 

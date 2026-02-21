@@ -1,6 +1,7 @@
 package securitytest
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -8,9 +9,9 @@ import (
 	"time"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
-	huskydocker "github.com/huskyci-org/huskyCI/api/dockers"
 	huskykube "github.com/huskyci-org/huskyCI/api/kubernetes"
 	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/runner"
 	"github.com/huskyci-org/huskyCI/api/types"
 	"github.com/huskyci-org/huskyCI/api/util"
 )
@@ -109,12 +110,18 @@ func (scanInfo *SecTestScanInfo) Start() error {
 }
 
 func (scanInfo *SecTestScanInfo) dockerRun(timeOutInSeconds int) error {
+	r := runner.Default()
+	if r == nil {
+		return fmt.Errorf("no container runner configured; ensure HUSKYCI_INFRASTRUCTURE_USE=docker and Docker health check succeeded")
+	}
+
 	image := scanInfo.Container.SecurityTest.Image
 	imageTag := scanInfo.Container.SecurityTest.ImageTag
+	fullImage := fmt.Sprintf("%s:%s", image, imageTag)
 	cmd := util.HandleCmd(scanInfo.URL, scanInfo.Branch, scanInfo.Container.SecurityTest.Cmd)
 	cmd = util.HandleGitURLSubstitution(cmd)
 	finalCMD := util.HandlePrivateSSHKey(cmd)
-	
+
 	// Check if this is a file:// URL and get the volume path
 	var volumePath string
 	if util.IsFileURL(scanInfo.URL) {
@@ -122,16 +129,38 @@ func (scanInfo *SecTestScanInfo) dockerRun(timeOutInSeconds int) error {
 		if RID != "" {
 			volumePath = util.GetExtractedDir(RID)
 			log.Info("dockerRun", "SECURITYTEST", 16, fmt.Sprintf("File:// URL detected, RID: %s, Volume path: %s", RID, volumePath))
-			log.Info("dockerRun", "SECURITYTEST", 16, fmt.Sprintf("Command after HandleCmd: %s", cmd))
 		}
 	}
-	
-	CID, cOutput, err := huskydocker.DockerRunWithVolume(image, imageTag, finalCMD, scanInfo.DockerHost, volumePath, timeOutInSeconds)
+
+	req := runner.RunRequest{
+		Image:          fullImage,
+		Cmd:            finalCMD,
+		VolumePath:     volumePath,
+		TimeoutSeconds: timeOutInSeconds,
+	}
+	result, err := r.Run(context.Background(), req)
 	if err != nil {
 		return err
 	}
-	scanInfo.Container.CID = CID
-	scanInfo.Container.COutput = cOutput
+	if result.Err != nil {
+		return result.Err
+	}
+
+	scanInfo.Container.CID = "" // runner abstraction does not expose container ID
+	scanInfo.Container.COutput = result.Stdout
+
+	// When stdout is empty, log stderr for diagnostics (safe prefix only)
+	if len(result.Stdout) == 0 && len(result.Stderr) > 0 {
+		stderrPrefix := result.Stderr
+		if len(stderrPrefix) > 500 {
+			stderrPrefix = stderrPrefix[:500] + "..."
+		}
+		log.Info("dockerRun", "SECURITYTEST", 16, fmt.Sprintf("container stdout empty | stderrLen=%d stderrPrefix=%s", len(result.Stderr), stderrPrefix))
+	} else if scanInfo.SecurityTestName == "trivy" && len(result.Stdout) > 0 {
+		// Minimal log for file:// Trivy success (safe: length only)
+		log.Info("dockerRun", "SECURITYTEST", 16, fmt.Sprintf("Trivy outputLen=%d", len(result.Stdout)))
+	}
+
 	return nil
 }
 

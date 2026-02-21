@@ -2,8 +2,10 @@ package dockers
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -13,6 +15,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
 	"github.com/huskyci-org/huskyCI/api/log"
 	goContext "golang.org/x/net/context"
@@ -84,6 +87,15 @@ func NewDocker(dockerHost string) (*Docker, error) {
 		return nil, fmt.Errorf("Docker host is empty; set HUSKYCI_DOCKERAPI_ADDR (e.g. dockerapi)")
 	}
 
+	// Use tcp:// for WithHost so dial uses network "tcp" (avoids "dial https: unknown network https" on ContainerAttach/hijack).
+	// TLS is still applied via WithTLSClientConfigFromEnv().
+	hostForClient := dockerHost
+	if strings.HasPrefix(dockerHost, "https://") {
+		hostForClient = "tcp://" + strings.TrimPrefix(dockerHost, "https://")
+	} else if strings.HasPrefix(dockerHost, "http://") {
+		hostForClient = "tcp://" + strings.TrimPrefix(dockerHost, "http://")
+	}
+
 	// Set env vars so WithTLSClientConfigFromEnv can read them; do not rely on DOCKER_HOST for client creation
 	// to avoid races when multiple goroutines call NewDocker (each gets explicit host via WithHost).
 	err = os.Setenv("DOCKER_HOST", dockerHost)
@@ -108,7 +120,7 @@ func NewDocker(dockerHost string) (*Docker, error) {
 		os.Unsetenv("DOCKER_TLS_VERIFY")
 	}
 
-	opts := []client.Opt{client.WithHost(dockerHost), client.WithAPIVersionNegotiation()}
+	opts := []client.Opt{client.WithHost(hostForClient), client.WithAPIVersionNegotiation()}
 	if !isUnixSocket {
 		opts = append(opts, client.WithTLSClientConfigFromEnv())
 	}
@@ -133,10 +145,10 @@ func (d Docker) CreateContainerWithVolume(image, cmd, volumePath string) (string
 	ctx := goContext.Background()
 	config := &container.Config{
 		Image: image,
-		Tty:   true,
+		Tty:   false, // false so ContainerLogs returns multiplexed stream; ReadOutput demuxes to get stdout only
 		Cmd:   []string{"/bin/sh", "-c", cmd},
 	}
-	
+
 	var hostConfig *container.HostConfig
 	if volumePath != "" {
 		// For docker-in-docker, bind mounts are resolved relative to the Docker daemon's host (dockerapi)
@@ -160,15 +172,16 @@ func (d Docker) CreateContainerWithVolume(image, cmd, volumePath string) (string
 	return resp.ID, nil
 }
 
-// CreateContainerWithVolumeRW creates a new container with a read-write volume mount
+// CreateContainerWithVolumeRW creates a new container with a read-write volume mount.
+// Tty: false so ContainerLogs use multiplexed format; ReadOutput demuxes with stdcopy.
 func (d Docker) CreateContainerWithVolumeRW(image, cmd, volumePath string) (string, error) {
 	ctx := goContext.Background()
 	config := &container.Config{
 		Image: image,
-		Tty:   true,
+		Tty:   false,
 		Cmd:   []string{"/bin/sh", "-c", cmd},
 	}
-	
+
 	var hostConfig *container.HostConfig
 	if volumePath != "" {
 		// For docker-in-docker, bind mounts are resolved relative to the Docker daemon's host (dockerapi)
@@ -178,9 +191,9 @@ func (d Docker) CreateContainerWithVolumeRW(image, cmd, volumePath string) (stri
 			Binds: []string{fmt.Sprintf("%s:/workspace", volumePath)}, // No :ro, so it's read-write
 		}
 	}
-	
+
 	resp, err := d.client.ContainerCreate(ctx, config, hostConfig, nil, nil, "")
-	
+
 	if err != nil {
 		log.Error("CreateContainer", logInfoAPI, 3005, err)
 		// If volume mount fails, log the error with more context
@@ -190,6 +203,55 @@ func (d Docker) CreateContainerWithVolumeRW(image, cmd, volumePath string) (stri
 		return "", err
 	}
 	return resp.ID, nil
+}
+
+// CreateContainerWithVolumeRWStdin creates a container with a read-write volume mount and stdin open for streaming.
+// Use AttachAndStreamStdin to send data; container cmd should read from stdin (e.g. "cat > /workspace/file.zip").
+func (d Docker) CreateContainerWithVolumeRWStdin(image, cmd, volumePath string) (string, error) {
+	ctx := goContext.Background()
+	config := &container.Config{
+		Image:      image,
+		Tty:        false,
+		OpenStdin:  true,
+		StdinOnce:  true,
+		Cmd:        []string{"/bin/sh", "-c", cmd},
+	}
+
+	var hostConfig *container.HostConfig
+	if volumePath != "" {
+		hostConfig = &container.HostConfig{
+			Binds: []string{fmt.Sprintf("%s:/workspace", volumePath)},
+		}
+	}
+
+	resp, err := d.client.ContainerCreate(ctx, config, hostConfig, nil, nil, "")
+	if err != nil {
+		log.Error("CreateContainer", logInfoAPI, 3005, err)
+		if volumePath != "" {
+			log.Error("CreateContainer", logInfoAPI, 3005, fmt.Errorf("failed to create container with volume mount %s: %v", volumePath, err))
+		}
+		return "", err
+	}
+	return resp.ID, nil
+}
+
+// AttachAndStreamStdin attaches to the container's stdin and streams reader until EOF, then closes write.
+// The container must have been created with OpenStdin: true and already started.
+func (d *Docker) AttachAndStreamStdin(reader io.Reader) error {
+	ctx := goContext.Background()
+	opts := container.AttachOptions{Stream: true, Stdin: true}
+	resp, err := d.client.ContainerAttach(ctx, d.CID, opts)
+	if err != nil {
+		return fmt.Errorf("attach to container: %w", err)
+	}
+	defer resp.Close()
+	if _, err := io.Copy(resp.Conn, reader); err != nil {
+		return fmt.Errorf("stream to container stdin: %w", err)
+	}
+	if err := resp.CloseWrite(); err != nil {
+		return fmt.Errorf("close container stdin: %w", err)
+	}
+	return nil
 }
 
 // StartContainer starts a container and returns its error.
@@ -288,20 +350,30 @@ func (d Docker) DieContainers() error {
 }
 
 // ReadOutput returns STDOUT of a given containerID.
+// Containers are created with Tty: false, so the log stream is multiplexed; we demux with stdcopy to get stdout only.
 func (d Docker) ReadOutput() (string, error) {
-	ctx := goContext.Background()
-	out, err := d.client.ContainerLogs(ctx, d.CID, dockerTypes.ContainerLogsOptions{ShowStdout: true})
-	if err != nil {
-		log.Error("ReadOutput", logInfoAPI, 3006, err)
-		return "", nil
-	}
+	stdout, _, err := d.ReadOutputBoth()
+	return stdout, err
+}
 
-	body, err := ioutil.ReadAll(out)
+// ReadOutputBoth returns both STDOUT and STDERR with a single ContainerLogs + StdCopy call (single-pass).
+// Use this when stderr is needed for diagnostics (e.g. when stdout is empty).
+func (d Docker) ReadOutputBoth() (stdout, stderr string, err error) {
+	ctx := goContext.Background()
+	out, err := d.client.ContainerLogs(ctx, d.CID, dockerTypes.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
-		log.Error("ReadOutput", logInfoAPI, 3007, err)
-		return "", err
+		log.Error("ReadOutputBoth", logInfoAPI, 3006, err)
+		return "", "", err
 	}
-	return string(body), err
+	defer out.Close()
+
+	var stdoutBuf, stderrBuf bytes.Buffer
+	_, err = stdcopy.StdCopy(&stdoutBuf, &stderrBuf, out)
+	if err != nil {
+		log.Error("ReadOutputBoth", logInfoAPI, 3007, err)
+		return "", "", err
+	}
+	return stdoutBuf.String(), stderrBuf.String(), nil
 }
 
 // ReadOutputStderr returns STDERR of a given containerID.

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -9,9 +10,9 @@ import (
 	"strings"
 
 	apiContext "github.com/huskyci-org/huskyCI/api/context"
-	docker "github.com/huskyci-org/huskyCI/api/dockers"
 	kube "github.com/huskyci-org/huskyCI/api/kubernetes"
 	"github.com/huskyci-org/huskyCI/api/log"
+	"github.com/huskyci-org/huskyCI/api/runner"
 	"github.com/huskyci-org/huskyCI/api/types"
 	"github.com/huskyci-org/huskyCI/api/user"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -125,15 +126,33 @@ func checkInfrastructure(checkHandler CheckInterface, configAPI *apiContext.APIC
 }
 
 func (cH *CheckUtils) checkDockerHosts(configAPI *apiContext.APIConfig) error {
-	// writes necessary keys for TLS to respective files
-	if err := createAPIKeys(); err != nil {
-		return err
+	runnerType := strings.TrimSpace(strings.ToLower(os.Getenv("HUSKYCI_RUNNER_TYPE")))
+	if runnerType == "" {
+		runnerType = "docker"
 	}
 
-	// Format Docker host address correctly (handles both Unix sockets and TCP addresses)
-	dockerHost := formatDockerHost(configAPI.DockerHostsConfig.Address, configAPI.DockerHostsConfig.DockerAPIPort)
+	var r runner.Runner
+	switch runnerType {
+	case "remote":
+		addr := strings.TrimSpace(os.Getenv("HUSKYCI_RUNNER_ADDR"))
+		if addr == "" {
+			return errors.New("HUSKYCI_RUNNER_ADDR is required when HUSKYCI_RUNNER_TYPE=remote")
+		}
+		r = runner.NewRemoteRunner(addr)
+	default:
+		// docker (default)
+		if err := createAPIKeys(); err != nil {
+			return err
+		}
+		dockerHost := formatDockerHost(configAPI.DockerHostsConfig.Address, configAPI.DockerHostsConfig.DockerAPIPort)
+		r = runner.NewFromConfig(dockerHost)
+	}
 
-	return docker.HealthCheckDockerAPI(dockerHost)
+	if err := r.Health(context.Background()); err != nil {
+		return err
+	}
+	runner.SetDefault(r)
+	return nil
 }
 
 func (cH *CheckUtils) checkKubernetesHosts(configAPI *apiContext.APIConfig) error {
@@ -160,7 +179,7 @@ func (cH *CheckUtils) checkDB(configAPI *apiContext.APIConfig) error {
 }
 
 func (cH *CheckUtils) checkEachSecurityTest(configAPI *apiContext.APIConfig) error {
-	securityTests := []string{"enry", "gitauthors", "gosec", "brakeman", "bandit", "npmaudit", "yarnaudit", "spotbugs", "gitleaks", "safety", "tfsec", "securitycodescan"}
+	securityTests := []string{"enry", "gitauthors", "gosec", "brakeman", "bandit", "npmaudit", "yarnaudit", "spotbugs", "gitleaks", "safety", "tfsec", "trivy", "securitycodescan"}
 	for _, securityTest := range securityTests {
 		if err := checkSecurityTest(securityTest, configAPI); err != nil {
 			errMsg := fmt.Sprintf("%s %s", securityTest, err)
@@ -275,6 +294,8 @@ func checkSecurityTest(securityTestName string, configAPI *apiContext.APIConfig)
 		securityTestConfig = *configAPI.SafetySecurityTest
 	case "tfsec":
 		securityTestConfig = *configAPI.TFSecSecurityTest
+	case "trivy":
+		securityTestConfig = *configAPI.TrivySecurityTest
 	case "securitycodescan":
 		securityTestConfig = *configAPI.SecurityCodeScanSecurityTest
 	default:
